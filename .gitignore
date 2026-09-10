@@ -1,0 +1,19 @@
+# Godot 4+ specific ignores
+.godot/
+
+# Export templates & build artifacts
+export/
+build/
+*.pck
+*.apk
+*.aab
+*.exe
+*.zip
+
+# System / Editor files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
