@@ -116,4 +116,4 @@ func set_walking_mode(enabled: bool) -> void:
 	if speed_label: speed_label.visible = not enabled
 	if weapon_label: weapon_label.visible = not enabled
 	if controls_guide: controls_guide.visible = not enabled
-	if health_label: health_label.visible = not enabled
+	if health_label: health_label.visible = true
