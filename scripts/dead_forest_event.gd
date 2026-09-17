@@ -5,6 +5,7 @@ const BUNKER_SCRIPT = preload("res://scripts/small_bunker.gd")
 const PYLON_SCRIPT = preload("res://scripts/nuclear_pylon.gd")
 const DOSIMETER_SCRIPT = preload("res://scripts/radiation_dosimeter.gd")
 const FACILITY_SCRIPT = preload("res://scripts/concrete_facility.gd")
+const CAMPSITE_SCRIPT = preload("res://scripts/abandoned_campsite.gd")
 
 @export var player: CharacterBody3D
 @export var terrain: Node3D
@@ -15,7 +16,10 @@ var current_state: State = State.WANDERING
 
 var wander_distance: float = 0.0
 var wander_target: float = 600.0
+var campsite_target: float = 175.0
+var campsite_spawned: bool = false
 var last_pos: Vector3 = Vector3.ZERO
+var campsite_instance: Node3D
 var bunker_instance: Node3D
 var facility_instance: Node3D
 var pylons: Array[Node3D] = []
@@ -24,6 +28,7 @@ var end_facility_pos: Vector3 = Vector3.ZERO
 
 func _ready() -> void:
 	wander_target = randf_range(400.0, 800.0)
+	campsite_target = randf_range(150.0, 200.0)
 	if player: last_pos = player.global_position
 
 func _physics_process(delta: float) -> void:
@@ -35,12 +40,36 @@ func _physics_process(delta: float) -> void:
 			var d = p_pos.distance_to(last_pos)
 			if d > 0.05 and d < 10.0: wander_distance += d
 			last_pos = p_pos
+			if not campsite_spawned and wander_distance >= campsite_target:
+				_spawn_campsite_silently(p_pos)
 			if wander_distance >= wander_target:
 				_spawn_small_bunker_silently(p_pos)
 		State.BUNKER_ACTIVE:
 			if bunker_instance and not bunker_instance.is_claimed:
 				if bunker_instance.check_interaction(p_pos):
 					_on_dosimeter_picked_up()
+
+func _spawn_campsite_silently(p_pos: Vector3) -> void:
+	campsite_spawned = true
+	var cam = player.get_node_or_null("Head/Camera3D") as Camera3D
+	var fwd = -cam.global_transform.basis.z if cam else -player.global_transform.basis.z
+	fwd.y = 0.0; fwd = fwd.normalized()
+	if fwd.length_squared() < 0.1: fwd = Vector3(0.0, 0.0, -1.0)
+	var move_dir = Vector3(player.velocity.x, 0.0, player.velocity.z).normalized()
+	var spawn_dir = move_dir if move_dir.length_squared() > 0.1 else fwd
+	var c_pos = p_pos + spawn_dir * 22.0
+
+	var gy = terrain.get_height(c_pos.x, c_pos.z) if terrain else 0.0
+	if terrain and terrain.has_method("add_flat_zone"):
+		terrain.add_flat_zone(c_pos.x, c_pos.z, 8.5, gy)
+	if props and props.has_method("clear_area"):
+		props.clear_area(Vector3(c_pos.x, gy, c_pos.z), 9.0)
+
+	campsite_instance = CAMPSITE_SCRIPT.new()
+	campsite_instance.build_campsite(terrain, c_pos.x, c_pos.z)
+	campsite_instance.rotation.y = atan2(-spawn_dir.x, -spawn_dir.z)
+	add_child(campsite_instance)
+	print("[DeadForest] Campsite spawned at: ", c_pos, " | Wander dist: %1.0fm / %1.0fm" % [wander_distance, campsite_target])
 
 func _spawn_small_bunker_silently(p_pos: Vector3) -> void:
 	current_state = State.BUNKER_ACTIVE
