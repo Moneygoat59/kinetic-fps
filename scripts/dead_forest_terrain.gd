@@ -62,7 +62,7 @@ static func get_chunk_pools(cx: int, cz: int) -> Array[Dictionary]:
 	for i in range(rng.randi_range(1, 2)):
 		var px = min_x + rng.randf_range(9.0, 39.0); var pz = min_z + rng.randf_range(9.0, 39.0)
 		if px * px + pz * pz < 400.0: continue
-		pools.append({"x": px, "z": pz, "r": rng.randf_range(2.8, 3.8), "d": rng.randf_range(0.70, 0.95), "seed": rng.randi()})
+		pools.append({"x": px, "z": pz, "r": rng.randf_range(3.2, 4.6), "d": rng.randf_range(0.60, 0.80), "seed": rng.randi()})
 	return pools
 
 func get_height(x: float, z: float) -> float:

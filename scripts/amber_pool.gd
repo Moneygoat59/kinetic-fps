@@ -26,7 +26,7 @@ func build_pool(terrain: Node3D, pos_x: float, pos_z: float, radius: float, dept
 	if not emit_tex: emit_tex = _load_tex("res://textures/amber_sludge_pixel_emit.png")
 
 	var gy = terrain.get_height(pos_x, pos_z) if terrain else 0.0
-	position = Vector3(pos_x, gy + 0.08, pos_z)
+	position = Vector3(pos_x, gy + depth * 0.55, pos_z)
 
 	var stain_mat = StandardMaterial3D.new()
 	stain_mat.albedo_texture = sludge_tex; stain_mat.albedo_color = Color(0.20, 0.14, 0.07, 0.88)
@@ -44,11 +44,11 @@ func build_pool(terrain: Node3D, pos_x: float, pos_z: float, radius: float, dept
 	var mi = MeshInstance3D.new(); mi.mesh = _create_seep_mesh(radius, p_seed)
 	mi.material_override = mat; add_child(mi)
 
-	for i in range(3):
-		var bmi = MeshInstance3D.new(); var sph = SphereMesh.new(); var brad = radius * randf_range(0.10, 0.18)
-		sph.radius = brad; sph.height = brad * 1.1; bmi.mesh = sph; bmi.material_override = mat
-		var ang = randf() * TAU; var dist = randf_range(0.1, radius * 0.55)
-		bmi.position = Vector3(cos(ang) * dist, 0.02, sin(ang) * dist)
+	for i in range(4):
+		var bmi = MeshInstance3D.new(); var sph = SphereMesh.new(); var brad = randf_range(0.10, 0.22)
+		sph.radius = brad; sph.height = brad * 0.8; bmi.mesh = sph; bmi.material_override = mat
+		var ang = randf() * TAU; var dist = randf_range(0.15, radius * 0.60)
+		bmi.position = Vector3(cos(ang) * dist, 0.01, sin(ang) * dist)
 		add_child(bmi); blisters.append(bmi); blister_offsets.append(randf() * 10.0)
 
 	pool_light = OmniLight3D.new(); pool_light.position = Vector3(0.0, 0.35, 0.0)
@@ -56,7 +56,7 @@ func build_pool(terrain: Node3D, pos_x: float, pos_z: float, radius: float, dept
 	pool_light.omni_range = radius * 2.8; add_child(pool_light)
 
 	var col = CollisionShape3D.new(); var shape = CylinderShape3D.new()
-	shape.radius = radius * 0.65; shape.height = 0.40; col.shape = shape; col.position.y = 0.10; add_child(col)
+	shape.radius = radius * 0.75; shape.height = 0.40; col.shape = shape; col.position.y = 0.10; add_child(col)
 
 	bubble_audio = AudioStreamPlayer3D.new(); bubble_audio.stream = BUBBLE_SOUND
 	bubble_audio.unit_size = 6.0; bubble_audio.max_distance = 22.0; bubble_audio.volume_db = -9.0
