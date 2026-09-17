@@ -4,25 +4,19 @@ extends CharacterBody3D
 const CourseManager = preload("res://scripts/course_manager.gd")
 const MegaLevelManager = preload("res://scripts/megalevel_manager.gd")
 const VineRenderer = preload("res://scripts/vine_renderer.gd")
-const FOOTSTEPS = [
-	preload("res://audio/impacts/Audio/footstep_grass_000.ogg"),
-	preload("res://audio/impacts/Audio/footstep_grass_001.ogg"),
-	preload("res://audio/impacts/Audio/footstep_grass_002.ogg"),
-	preload("res://audio/impacts/Audio/footstep_grass_003.ogg"),
-]
+const STEP_L = preload("res://audio/impacts/Audio/footstep_snow_000.ogg")
+const STEP_R = preload("res://audio/impacts/Audio/footstep_snow_001.ogg")
 
 @export var walk_only: bool = false
 
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
-@onready var gun_mount: Node3D = $Head/Camera3D/GunMount
-@onready var gun_mesh: Node3D = $Head/Camera3D/GunMount/Gun
+@onready var gun_mount: Node3D = $Head/Camera3D/GunMount; @onready var gun_mesh: Node3D = $Head/Camera3D/GunMount/Gun
 @onready var muzzle_flash: OmniLight3D = $Head/Camera3D/GunMount/Gun/MuzzleFlash
 @onready var grenade_mount: Node3D = $Head/Camera3D/GunMount/GrenadeHold
 @onready var grenade_pin: MeshInstance3D = $Head/Camera3D/GunMount/GrenadeHold/PinRing
 @onready var grenade_fuse_light: OmniLight3D = $Head/Camera3D/GunMount/GrenadeHold/FuseLight
-@onready var aim_ray: RayCast3D = $Head/Camera3D/AimRay
-@onready var hud: CanvasLayer = $HUD
+@onready var aim_ray: RayCast3D = $Head/Camera3D/AimRay; @onready var hud: CanvasLayer = $HUD
 
 var current_state: int = PlayerState.State.GROUND
 var input_ctrl: PlayerInput; var presenter: PlayerPresenter
@@ -30,6 +24,7 @@ var motor: PlayerMotor = PlayerMotor.new(); var vine: PlayerVine = PlayerVine.ne
 var combat: PlayerCombat = PlayerCombat.new(); var health: PlayerHealth = PlayerHealth.new()
 var hud_view: PlayerHudView; var vine_renderer: VineRenderer; var sound_manager: SoundManager
 var step_timer: float = 0.0
+var step_is_left: bool = false
 
 func _ready() -> void:
 	sound_manager = SoundManager.new(); input_ctrl = PlayerInput.new()
@@ -53,7 +48,7 @@ func _ready() -> void:
 	if walk_only: enable_walk_mode()
 
 func enable_walk_mode() -> void:
-	walk_only = true; motor.ground_speed = 5.2
+	walk_only = true; motor.ground_speed = 5.2; motor.jump_velocity = 6.8
 	if input_ctrl: input_ctrl.walk_only = true
 	if gun_mount: gun_mount.visible = false
 	if hud_view: hud_view.set_walking_mode(true)
@@ -63,8 +58,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_mouse"): input_ctrl.toggle_mouse(); return
 	if event is InputEventMouseButton and event.pressed and not input_ctrl.mouse_captured: input_ctrl.capture_mouse()
 	if walk_only:
-		input_ctrl.handle_mouse_input(event, self, head)
-		return
+		input_ctrl.handle_mouse_input(event, self, head); return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.is_action_pressed("equip_grenade") or event.keycode in [KEY_G, KEY_2]:
 			combat.switch_to(PlayerCombat.WeaponType.BLASTER if combat.current_weapon == PlayerCombat.WeaponType.GRENADE else PlayerCombat.WeaponType.GRENADE)
@@ -90,7 +84,9 @@ func _physics_process(delta: float) -> void:
 		if is_on_floor() and Vector2(velocity.x, velocity.z).length_squared() > 1.0:
 			step_timer -= delta
 			if step_timer <= 0.0:
-				step_timer = 0.54; SoundManager.play(FOOTSTEPS[randi() % FOOTSTEPS.size()], -8.0, 0.04)
+				step_timer = 0.52
+				SoundManager.play(STEP_L if step_is_left else STEP_R, -13.0, 0.01)
+				step_is_left = not step_is_left
 		return
 
 	var swing_tilt = 0.0

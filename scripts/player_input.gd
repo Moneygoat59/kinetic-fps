@@ -44,6 +44,8 @@ func poll_inputs(player_basis: Basis, is_grappling: bool) -> void:
 	winch_held = false
 
 	if walk_only:
+		if Input.is_action_just_pressed("jump"):
+			jump_buffer_timer = 0.15
 		slide_held = false
 		return
 
@@ -60,7 +62,6 @@ func poll_inputs(player_basis: Basis, is_grappling: bool) -> void:
 		slide_held = Input.is_action_pressed("slide")
 
 func consume_jump() -> bool:
-	if walk_only: return false
 	if jump_buffer_timer > 0.0 and coyote_timer > 0.0:
 		jump_buffer_timer = 0.0
 		coyote_timer = 0.0
