@@ -29,16 +29,18 @@ func build_pool(terrain: Node3D, pos_x: float, pos_z: float, radius: float, dept
 	position = Vector3(pos_x, gy + depth * 0.55, pos_z)
 
 	var stain_mat = StandardMaterial3D.new()
-	stain_mat.albedo_texture = sludge_tex; stain_mat.albedo_color = Color(0.20, 0.14, 0.07, 0.88)
-	stain_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST; stain_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	stain_mat.albedo_texture = sludge_tex; stain_mat.albedo_color = Color(0.42, 0.36, 0.30, 0.92)
+	stain_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	stain_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	stain_mat.roughness = 0.95; stain_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var stain_mi = MeshInstance3D.new(); stain_mi.mesh = _create_seep_mesh(radius * 1.25, p_seed + 19)
-	stain_mi.material_override = stain_mat; stain_mi.position.y = -0.04; add_child(stain_mi)
+	stain_mi.material_override = stain_mat; stain_mi.position.y = -0.02; add_child(stain_mi)
 
 	var mat = StandardMaterial3D.new()
 	mat.albedo_texture = sludge_tex; mat.emission_enabled = true; mat.emission_texture = emit_tex
-	mat.emission_energy_multiplier = 3.0; mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; mat.roughness = 0.08; mat.metallic = 0.2
+	mat.emission_energy_multiplier = 2.8
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; mat.roughness = 0.12; mat.metallic = 0.15
 	mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED; mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	var mi = MeshInstance3D.new(); mi.mesh = _create_seep_mesh(radius, p_seed)
