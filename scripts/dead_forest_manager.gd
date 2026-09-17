@@ -80,6 +80,7 @@ func _init_world() -> void:
 
 	spawn_point = Vector3(0.0, ground_y + 1.2, 0.0)
 	if player:
+		if player.has_method("enable_walk_mode"): player.enable_walk_mode()
 		player.global_position = spawn_point
 		player.velocity = Vector3.ZERO
 		if player.health: player.health.spawn_position = spawn_point

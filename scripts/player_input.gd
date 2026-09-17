@@ -20,6 +20,7 @@ var dash_requested: bool = false
 var slide_held: bool = false
 var winch_held: bool = false
 var catapult_requested: bool = false
+var walk_only: bool = false
 
 func update_timers(delta: float, is_on_floor: bool) -> void:
 	if delta <= 0.0:
@@ -42,6 +43,10 @@ func poll_inputs(player_basis: Basis, is_grappling: bool) -> void:
 	dash_requested = false
 	winch_held = false
 
+	if walk_only:
+		slide_held = false
+		return
+
 	if is_grappling:
 		if Input.is_action_just_pressed("dash"):
 			catapult_requested = true
@@ -55,6 +60,7 @@ func poll_inputs(player_basis: Basis, is_grappling: bool) -> void:
 		slide_held = Input.is_action_pressed("slide")
 
 func consume_jump() -> bool:
+	if walk_only: return false
 	if jump_buffer_timer > 0.0 and coyote_timer > 0.0:
 		jump_buffer_timer = 0.0
 		coyote_timer = 0.0
@@ -62,6 +68,7 @@ func consume_jump() -> bool:
 	return false
 
 func consume_dash() -> bool:
+	if walk_only: return false
 	if dash_requested and dash_timer <= 0.0:
 		dash_requested = false
 		dash_timer = dash_cooldown
