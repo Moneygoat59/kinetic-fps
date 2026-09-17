@@ -56,7 +56,7 @@ func build_pool(terrain: Node3D, pos_x: float, pos_z: float, radius: float, dept
 	pool_light.omni_range = radius * 2.8; add_child(pool_light)
 
 	var col = CollisionShape3D.new(); var shape = CylinderShape3D.new()
-	shape.radius = radius * 1.1; shape.height = 1.8; col.shape = shape; col.position.y = 0.6; add_child(col)
+	shape.radius = radius * 0.65; shape.height = 0.40; col.shape = shape; col.position.y = 0.10; add_child(col)
 
 	bubble_audio = AudioStreamPlayer3D.new(); bubble_audio.stream = BUBBLE_SOUND
 	bubble_audio.unit_size = 6.0; bubble_audio.max_distance = 22.0; bubble_audio.volume_db = -9.0
