@@ -54,6 +54,17 @@ func add_flat_zone(x: float, z: float, radius: float, target_y: float) -> void:
 			if sqrt((x - cx) * (x - cx) + (z - cz) * (z - cz)) < radius + CHUNK_SIZE:
 				_rebuild_chunk(chunks[i], coord.x, coord.y)
 
+static func get_chunk_pools(cx: int, cz: int) -> Array[Dictionary]:
+	var pools: Array[Dictionary] = []
+	var rng = RandomNumberGenerator.new()
+	rng.seed = (cx * 73856093) ^ (cz * 19349663) ^ 442211
+	var min_x = cx * CHUNK_SIZE - CHUNK_SIZE * 0.5; var min_z = cz * CHUNK_SIZE - CHUNK_SIZE * 0.5
+	for i in range(rng.randi_range(1, 2)):
+		var px = min_x + rng.randf_range(9.0, 39.0); var pz = min_z + rng.randf_range(9.0, 39.0)
+		if px * px + pz * pz < 400.0: continue
+		pools.append({"x": px, "z": pz, "r": rng.randf_range(2.8, 3.8), "d": rng.randf_range(0.70, 0.95), "seed": rng.randi()})
+	return pools
+
 func get_height(x: float, z: float) -> float:
 	var base_lump = noise.get_noise_2d(x, z) * 3.5
 	var micro = micro_noise.get_noise_2d(x, z) * 0.45
@@ -62,6 +73,17 @@ func get_height(x: float, z: float) -> float:
 	var spawn_dist = sqrt(x * x + z * z)
 	if spawn_dist < 18.0:
 		var factor = spawn_dist / 18.0; h = lerp(0.0, h, factor * factor)
+
+	var cell_x = int(floor((x + CHUNK_SIZE * 0.5) / CHUNK_SIZE))
+	var cell_z = int(floor((z + CHUNK_SIZE * 0.5) / CHUNK_SIZE))
+	for p in get_chunk_pools(cell_x, cell_z):
+		var d = sqrt((x - p.x) * (x - p.x) + (z - p.z) * (z - p.z))
+		var bowl_r = p.r * 1.35
+		if d < bowl_r:
+			var base_c = (noise.get_noise_2d(p.x, p.z) * 3.5) + (micro_noise.get_noise_2d(p.x, p.z) * 0.45)
+			var target_y = base_c - p.d
+			var t = clampf(d / bowl_r, 0.0, 1.0)
+			h = lerpf(target_y, h, t * t)
 
 	for fz in flat_zones:
 		var d = sqrt((x - fz.x) * (x - fz.x) + (z - fz.z) * (z - fz.z))

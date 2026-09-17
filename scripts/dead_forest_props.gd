@@ -69,12 +69,12 @@ func _on_chunk_recycled(props_node: Node3D, cx: int, cz: int) -> void:
 	if cx == 0 and cz == 0: _spawn_clearing(props_node)
 
 	var pools: Array[Vector3] = []
-	for i in range(rng.randi_range(1, 2)):
-		var px = min_x + rng.randf_range(5.0, 43.0); var pz = min_z + rng.randf_range(5.0, 43.0)
-		if (px * px + pz * pz < 400.0) or _is_excluded(px, pz): continue
-		var pr = rng.randf_range(2.2, 3.8)
-		var pool = AMBER_POOL.new(); pool.build_pool(terrain_ref, px, pz, pr); props_node.add_child(pool)
-		pools.append(Vector3(px, pz, pr + 1.2))
+	for p in DeadForestTerrain.get_chunk_pools(cx, cz):
+		if _is_excluded(p.x, p.z): continue
+		var pool = AMBER_POOL.new()
+		pool.build_pool(terrain_ref, p.x, p.z, p.r, p.d, p.seed)
+		props_node.add_child(pool)
+		pools.append(Vector3(p.x, p.z, p.r + 1.2))
 
 	for i in range(14):
 		var x = min_x + rng.randf() * 48.0; var z = min_z + rng.randf() * 48.0
