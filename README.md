@@ -17,18 +17,32 @@ A fast-paced, high-mobility retro FPS built in **Godot 4.3 (GDScript)** inspired
 
 ---
 
-## Vine Mechanics & Slingshot Tuning (Options 1 & 3)
+## Sector 00: The Proving Grounds (Mega-Level)
 
-1. **Physics-True Catapult & Soft Cap (Option 1)**:
-   - Release speed is determined by the **physical velocity of your pendulum arc** + a punchy forward impulse (+7.0 m/s).
-   - Max launch speed is soft-capped at **36 m/s**.
-   - **Aerodynamic Drag Taper**: Above 28 m/s in the air, wind resistance smoothly glides your velocity down into a controllable trajectory instead of launching you into orbit.
-2. **"Over-Strained" Vine Snap (Option 3)**:
-   - Tougher vine durability: strain only begins accumulating during true runaway hyper-speeds (**>33 m/s**) or extreme over-stretching (>25%).
-   - **Visuals**: The vine visibly shifts from toxic neon green to straining orange, and then violent warning red as it rapidly vibrates.
-   - **Audio**: A rising groaning pitch warns you the vine is reaching its breaking point.
-   - **The Snap**: If strained to 100%, the vine violently snaps (*TWANG!*), shedding 40% of your forward speed and dropping you straight down with a brief cooldown.
-   - **Sweet Spot**: Timing your release right before maximum strain yields the cleanest, highest-momentum slingshot!
+A massive **600m x 600m** interconnected brutalist testing complex designed for extreme traversal and high-velocity momentum:
+
+- **Sector 00 // The Core Citadel**: Central transit hub featuring a 75-meter brutalist spire with an interior vertical **Hyper-Lift** launching players 50m straight through the roof to the top observation deck and 360° grapple anchors.
+- **Sector 01 // Stratosphere Slingshot Arcs**: A bottomless void canyon crossed by 5 suspended mega-cranes and glowing tether beacons (35-42m reach spacing) for continuous aerial pendulum slingshots across a 300m gap.
+- **Sector 02 // Velocity Chute Canyon**: A 300-meter winding downhill mountain slide with steep 35° drops, low concrete crouch-slide bulkheads, boost ramps, and a ski-jump lip catapulting players across the eastern trench.
+- **Sector 03 // Industrial Foundry & Basin**: Sunken excavation combat pit featuring warehouse rooftops, shipping container stacks, patrolling walking Mechs, target dummies, and high-yield ejector jump pads.
+- **Sector 04 // Mach-Speed Bhop Highway**: A 350-meter elevated 4-lane straightaway suspended on massive pillars, built for uninterrupted air-strafing bunnyhops with 50-60+ m/s uncapped acceleration and speed arches.
+- **Sector 05 // Orbital Catapult Gantry**: High-yield launch platform catapulting players 75+ meters into the stratosphere toward mid-air tether beacons.
+- **Sector 06 // Perimeter Skyway Ring**: Elevated 1.5km ring highway looping around the entire megastructure.
+- **Dynamic Checkpoint & HUD System**: Tracks current sector, speedometer milestones (32 m/s, 45 m/s, 60+ m/s), session top speeds, void fall recovery, and enemy wave respawning (`[R]`).
+
+---
+
+## Vine Mechanics & Slingshot Tuning (Balanced Momentum & Vertical Pop)
+
+1. **Balanced Reach & Responsive Tethering**:
+   - Reach set to **42.0 m** (down from 54 m, up from 34 m), giving plenty of room to catch overhead cranes and high spires without sniping skyboxes.
+   - Spring stiffness set to `20.0` and latch boost to `3.2 m/s` for a tactile, responsive swing that pulls with weight.
+2. **Dynamic Vertical Pop & Ceiling Control**:
+   - **Upward Launch Pop**: Vertical ceiling raised to **$24.5\text{ m/s}$**, providing a generous aerial lift (~$12.5\text{--}14\text{ m}$) to easily vault cranes, clear bridges, and scale high structures.
+   - **Tactical Winch (`Space`)**: Holding `Space` while grappling reels you in slowly towards the anchor point, lifting off the ground and reeling upward.
+   - **Catapult Launch (`Shift`)**: Tapping `Shift` during a swing catapults you off the vine with a forward boost and punchy **$+4.5\text{ m/s}$** vertical pop.
+   - **Natural Arc Release**: Releasing `RMB` naturally detaches while preserving your swing's momentum up to $24.5\text{ m/s}$.
+   - **Cloud-Rocket Prevention**: Only extreme runaway vertical velocity ($> 24.5\text{ m/s}$) is converted into forward momentum, preventing players from rocketing into outer space while preserving vertical freedom.
 
 ---
 
@@ -57,6 +71,20 @@ Step through the **Green Start Gate** to start the stopwatch!
 
 ---
 
+## PS1 Foliage & Industrial World Decoration System
+
+The Mega-Level complex now features an automated **World Decorator** ([`scripts/world_decorator.gd`](file:///C:/Users/Isaac/kinetic-fps/scripts/world_decorator.gd)) that populates **205+ curated low-poly 3D models**:
+- **Authentic PS1 Aesthetics**: Rendered with [`shaders/ps1_model.gdshader`](file:///C:/Users/Isaac/kinetic-fps/shaders/ps1_model.gdshader) featuring screen-space vertex snapping (`jitter_resolution = 180`), unlit/matte shading (`specular_disabled`), and nearest-neighbor texture filtering.
+- **Solid & Grapple-able**: Every tree, rock, crate, and pipe has a generated static collider (`PropCollider`), allowing players to tether, vine-swing, and slingshot off them!
+- **Environmental Theming by Sector**:
+  - **Sector 00 // Citadel Gardens**: Overgrown plaza planters with high spruce pines, wild ferns, low crags, and steam conduit pipe runs.
+  - **Sector 01 // Void Canyon Pines**: Wind-whipped evergreens and boulder crags perched precariously over the 300m void chasm beneath the mega-cranes.
+  - **Sector 02 // Velocity Chute Forest**: Dense pine forest lining the mountain slide retaining walls; duck under overhead industrial pipe arches at 35+ m/s!
+  - **Sector 03 // Industrial Foundry**: Heavy factory machinery, robotic arms, storage hoppers, stacked cargo crates for combat cover, and toxic trench weeds.
+  - **Sector 04 // Bhop Highway**: Highway hazard cones and striped barricades lining the 350m high-speed air-strafe runway.
+
+---
+
 ## Explosive Grenade Weapon (`G` / `2`)
 
 A two-stage cooked fragmentation grenade explosive:
@@ -81,12 +109,14 @@ A two-stage cooked fragmentation grenade explosive:
 
 | Action | Controls | Mechanic Feel |
 | :--- | :--- | :--- |
-| **Shitty Vine Swing** | **Hold `RMB`** | Shoots an elastic green bio-vine. Swings you in a pendulum arc with sag & wobble! |
-| **Slingshot Release** | **Release `RMB` / `Space`** | Releases momentum in a physics-governed catapult arc |
-| **Vine Pumping** | `W` `A` `S` `D` *(in air)* | Adds tangential torque to build swing speed |
-| **Strafe Jump / Bhop** | `Space` | Turn mouse smoothly while holding strafe keys to gain uncapped air velocity |
+| **Vine Swing** | **Hold `RMB`** | Shoots an elastic green bio-vine. Swings you in a pendulum arc with sag & wobble! |
+| **Vine Winch** | **Hold `Space`** | Slowly reels you in towards anchor, lifting off the ground with ratchet audio |
+| **Catapult Launch** | **`Shift`** | Launches forward off the vine with +4.5 m/s upward vertical pop |
+| **Smooth Detach** | **Release `RMB`** | Silently releases tether while preserving swing momentum |
+| **Vine Steering / Pumping** | `W` `A` `S` `D` *(in air)* | Directional torque to pump swing arcs without altering rope length |
+| **Strafe Jump / Bhop** | `Space` *(on floor)* | Turn mouse smoothly while holding strafe keys to gain uncapped air velocity |
 | **Momentum Slide** | `Ctrl` or `C` | Low friction slide; crouches camera and launches down slopes |
-| **Kinetic Dash** | `Shift` or `Q` | Instant directional burst with camera kick |
+| **Kinetic Dash** | `Shift` or `Q` *(not grappling)* | Instant directional burst with camera kick |
 | **Equip Grenade** | `G` or `2` | Switch to cooked explosive grenade |
 | **Equip Blaster** | `1` | Switch back to primary blaster |
 | **Pull Pin (Grenade)** | `LMB` *(1st click)* | Pulls pin, ignites fuse (3.5s cook timer) |

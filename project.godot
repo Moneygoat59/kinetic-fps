@@ -12,18 +12,20 @@ config_version=5
 
 config/name="KINETIC"
 config/description="Retro Movement FPS Prototype"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/levels/dead_forest.tscn"
 config/features=PackedStringArray("4.3", "Forward Plus")
 config/icon="res://icon.svg"
 
 [display]
 
-window/size/viewport_width=1280
-window/size/viewport_height=720
-window/size/mode=0
-window/size/resizable=true
+window/size/viewport_width=640
+window/size/viewport_height=360
+window/size/mode="maximized"
+window/size/window_width_override=1920
+window/size/window_height_override=1080
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/stretch/scale_mode="fractional"
 
 [input]
 
@@ -102,5 +104,8 @@ equip_grenade={
 
 [rendering]
 
-textures/canvas_textures/default_texture_filter=0
-scaling_3d/scale=0.65
+textures/canvas_textures/default_texture_filter=1
+scaling_3d/scale=1.0
+scaling_3d/mode=0
+anti_aliasing/quality/msaa_3d=2
+anti_aliasing/quality/screen_space_aa=1

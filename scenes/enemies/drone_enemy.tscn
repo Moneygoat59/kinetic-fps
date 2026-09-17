@@ -1,0 +1,79 @@
+[gd_scene load_steps=12 format=3 uid="uid://c8drone1234"]
+
+[ext_resource type="Script" path="res://scripts/drone_enemy.gd" id="1_drone"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_col"]
+radius = 0.65
+
+[sub_resource type="SphereMesh" id="SphereMesh_core"]
+radius = 0.5
+height = 1.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_core"]
+albedo_color = Color(0.16, 0.18, 0.22, 1)
+metallic = 0.85
+roughness = 0.3
+
+[sub_resource type="BoxMesh" id="BoxMesh_eye"]
+size = Vector3(0.25, 0.14, 0.2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eye"]
+albedo_color = Color(1, 0.15, 0.1, 1)
+emission_enabled = true
+emission = Color(1, 0.2, 0.1, 1)
+emission_energy_multiplier = 3.0
+
+[sub_resource type="BoxMesh" id="BoxMesh_wing"]
+size = Vector3(0.55, 0.06, 0.35)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wing"]
+albedo_color = Color(0.28, 0.32, 0.36, 1)
+metallic = 0.7
+roughness = 0.4
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_cannon"]
+top_radius = 0.07
+bottom_radius = 0.09
+height = 0.35
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cannon"]
+albedo_color = Color(0.1, 0.1, 0.12, 1)
+metallic = 0.9
+
+[node name="DroneEnemy" type="CharacterBody3D"]
+collision_layer = 7
+collision_mask = 7
+script = ExtResource("1_drone")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("SphereShape3D_col")
+
+[node name="Core" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_core")
+surface_material_override/0 = SubResource("StandardMaterial3D_core")
+
+[node name="EyeMesh" type="MeshInstance3D" parent="Core"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, -0.45)
+mesh = SubResource("BoxMesh_eye")
+surface_material_override/0 = SubResource("StandardMaterial3D_eye")
+
+[node name="EyeLight" type="OmniLight3D" parent="Core"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, -0.6)
+light_color = Color(1, 0.2, 0.1, 1)
+light_energy = 2.5
+omni_range = 5.0
+
+[node name="WingLeft" type="MeshInstance3D" parent="Core"]
+transform = Transform3D(0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 0, 0, 1, -0.65, 0.05, 0)
+mesh = SubResource("BoxMesh_wing")
+surface_material_override/0 = SubResource("StandardMaterial3D_wing")
+
+[node name="WingRight" type="MeshInstance3D" parent="Core"]
+transform = Transform3D(0.965926, -0.258819, 0, 0.258819, 0.965926, 0, 0, 0, 1, 0.65, 0.05, 0)
+mesh = SubResource("BoxMesh_wing")
+surface_material_override/0 = SubResource("StandardMaterial3D_wing")
+
+[node name="Cannon" type="MeshInstance3D" parent="Core"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, -0.38, -0.25)
+mesh = SubResource("CylinderMesh_cannon")
+surface_material_override/0 = SubResource("StandardMaterial3D_cannon")

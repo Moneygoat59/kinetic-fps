@@ -40,14 +40,12 @@ func start_course() -> void:
 		elapsed_time = 0.0
 		victory_panel.visible = false
 		_show_notice("TRIAL STARTED! GO!", Color(0.2, 1.0, 0.4))
-		if player and player.has_method("_play_tone_slide"):
-			player._play_tone_slide(400.0, 800.0, 0.12)
+		SoundManager.play(AudioBank.GATE_TARGET, 1.0)
 
 func reach_checkpoint(pos: Vector3, checkpoint_num: int, total: int) -> void:
 	current_checkpoint = pos
 	_show_notice("CHECKPOINT %d/%d" % [checkpoint_num, total], Color(0.3, 0.8, 1.0))
-	if player and player.has_method("_play_tone_slide"):
-		player._play_tone_slide(500.0, 750.0, 0.08)
+	SoundManager.play(AudioBank.CHECKPOINT, 1.0)
 
 func finish_course() -> void:
 	if not timer_running:
@@ -62,11 +60,7 @@ func finish_course() -> void:
 	var rec_text = " [NEW RECORD!]" if is_new_record else ""
 	victory_time_label.text = "TIME: %s%s\nBEST: %s" % [_format_time(elapsed_time), rec_text, _format_time(best_time)]
 	_show_notice("COURSE CLEARED!", Color(1.0, 0.85, 0.2))
-	
-	if player and player.has_method("_play_tone_slide"):
-		# Fanfare tones
-		player._play_tone_slide(440.0, 660.0, 0.15)
-		get_tree().create_timer(0.16).timeout.connect(func(): if player: player._play_tone_slide(660.0, 880.0, 0.25))
+	SoundManager.play(AudioBank.CHECKPOINT, 2.0)
 
 func respawn_player() -> void:
 	if player:
@@ -74,8 +68,7 @@ func respawn_player() -> void:
 		player.velocity = Vector3.ZERO
 		if player.has_method("reset_for_respawn"):
 			player.reset_for_respawn()
-		if player.has_method("_play_tone_slide"):
-			player._play_tone_slide(300.0, 150.0, 0.1, true)
+		SoundManager.play(AudioBank.WEAPON_SWITCH, 0.0)
 		_show_notice("RESET TO CHECKPOINT", Color(1.0, 0.3, 0.3))
 
 func restart_full_run() -> void:
