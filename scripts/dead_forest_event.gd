@@ -48,7 +48,9 @@ func _spawn_small_bunker_silently(p_pos: Vector3) -> void:
 	var fwd = -cam.global_transform.basis.z if cam else -player.global_transform.basis.z
 	fwd.y = 0.0; fwd = fwd.normalized()
 	if fwd.length_squared() < 0.1: fwd = Vector3(0.0, 0.0, -1.0)
-	var b_pos = p_pos + fwd * 34.0
+	var move_dir = Vector3(player.velocity.x, 0.0, player.velocity.z).normalized()
+	var spawn_dir = move_dir if move_dir.length_squared() > 0.1 else fwd
+	var b_pos = p_pos + spawn_dir * 22.0
 
 	var gy = terrain.get_height(b_pos.x, b_pos.z) if terrain else 0.0
 	if terrain and terrain.has_method("add_flat_zone"):
@@ -59,6 +61,7 @@ func _spawn_small_bunker_silently(p_pos: Vector3) -> void:
 	bunker_instance = BUNKER_SCRIPT.new()
 	bunker_instance.build_bunker(terrain, b_pos.x, b_pos.z)
 	add_child(bunker_instance)
+	print("[DeadForest] Small bunker spawned at: ", b_pos, " | Wander dist: %1.0fm / %1.0fm" % [wander_distance, wander_target])
 
 func _on_dosimeter_picked_up() -> void:
 	current_state = State.BEACONS_ACTIVE

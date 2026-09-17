@@ -6,7 +6,7 @@ signal dosimeter_acquired()
 const CONCRETE_TEX = preload("res://textures/concrete_seamless.png")
 const METAL_TEX = preload("res://textures/gun_metal_scratched.png")
 const HAZARD_TEX = preload("res://textures/hazard_stripes.png")
-const BEACON_SOUND = preload("res://audio/digital/Audio/twoTone1.ogg")
+const BEACON_SOUND = preload("res://audio/digital/Audio/threeTone1.ogg")
 const PICKUP_SOUND = preload("res://audio/ui/Audio/confirmation_001.ogg")
 const SWITCH_SOUND = preload("res://audio/ui/Audio/switch_001.ogg")
 
@@ -17,7 +17,7 @@ var roof_light: OmniLight3D
 var audio_beacon: AudioStreamPlayer3D
 var prompt_canvas: CanvasLayer
 var prompt_label: Label
-var chirp_timer: float = 0.5
+var chirp_timer: float = 1.0
 
 func build_bunker(terrain: Node3D, pos_x: float, pos_z: float) -> void:
 	var gy = terrain.get_height(pos_x, pos_z) if terrain else 0.0
@@ -55,12 +55,12 @@ func build_bunker(terrain: Node3D, pos_x: float, pos_z: float) -> void:
 	add_child(int_light)
 
 	roof_light = OmniLight3D.new(); roof_light.position = Vector3(0.0, 3.6, 0.0)
-	roof_light.light_color = Color(1.0, 0.68, 0.15); roof_light.light_energy = 4.0; roof_light.omni_range = 35.0
+	roof_light.light_color = Color(1.0, 0.70, 0.15); roof_light.light_energy = 5.5; roof_light.omni_range = 42.0
 	add_child(roof_light)
 
 	audio_beacon = AudioStreamPlayer3D.new(); audio_beacon.stream = BEACON_SOUND
-	audio_beacon.unit_size = 12.0; audio_beacon.max_distance = 90.0; audio_beacon.volume_db = 2.5
-	add_child(audio_beacon)
+	audio_beacon.unit_size = 28.0; audio_beacon.max_distance = 150.0; audio_beacon.volume_db = 9.0
+	add_child(audio_beacon); audio_beacon.play()
 
 	_create_physical_item(m_mat)
 	_setup_prompt_ui()
@@ -97,11 +97,11 @@ func _setup_prompt_ui() -> void:
 func _process(delta: float) -> void:
 	if is_claimed: return
 	var pulse = (sin(Time.get_ticks_msec() * 0.008) + 1.0) * 0.5
-	if roof_light: roof_light.light_energy = lerpf(1.8, 4.5, pulse)
+	if roof_light: roof_light.light_energy = lerpf(2.5, 6.5, pulse)
 	if item_node: item_node.position.y = 0.95 + sin(Time.get_ticks_msec() * 0.005) * 0.03
 	chirp_timer -= delta
 	if chirp_timer <= 0.0:
-		chirp_timer = 1.5
+		chirp_timer = 1.1
 		if audio_beacon: audio_beacon.play()
 
 func check_interaction(player_pos: Vector3) -> bool:
