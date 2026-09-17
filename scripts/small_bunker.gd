@@ -36,6 +36,7 @@ func build_bunker(terrain: Node3D, pos_x: float, pos_z: float) -> void:
 	h_mat.albedo_texture = HAZARD_TEX; h_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 
 	# Concrete Bunker Structure (6.2m wide, 2.9m tall, 5.4m deep)
+	_box(Vector3(0.0, -0.6, 0.0), Vector3(6.4, 1.4, 5.6), c_mat)  # Deep foundation skirt
 	_box(Vector3(0.0, 0.18, 0.0), Vector3(6.2, 0.36, 5.4), c_mat) # Floor slab
 	_box(Vector3(-2.8, 1.5, 0.0), Vector3(0.6, 2.7, 5.4), c_mat)  # Left wall
 	_box(Vector3(2.8, 1.5, 0.0), Vector3(0.6, 2.7, 5.4), c_mat)   # Right wall

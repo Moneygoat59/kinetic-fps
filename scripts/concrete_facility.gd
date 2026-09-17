@@ -5,10 +5,10 @@ var concrete_mat: StandardMaterial3D
 var metal_mat: StandardMaterial3D
 var hazard_mat: StandardMaterial3D
 
-func build_facility(terrain: Node3D) -> void:
+func build_facility(terrain: Node3D, pos_x: float = 0.0, pos_z: float = -180.0) -> void:
 	_init_materials()
-	var ground_y = terrain.get_height(0.0, -180.0) if terrain else -0.25
-	position = Vector3(0.0, ground_y, -180.0)
+	var ground_y = terrain.get_height(pos_x, pos_z) if terrain else -0.25
+	position = Vector3(pos_x, ground_y, pos_z)
 
 	_create_apron()
 	_create_main_monolith()
@@ -63,7 +63,8 @@ func _add_box(pos: Vector3, size: Vector3, mat: Material, add_col: bool = true) 
 	return mi
 
 func _create_apron() -> void:
-	# Raised concrete apron slab & entrance step
+	# Deep foundation skirt to stay flush with uneven terrain
+	_add_box(Vector3(0.0, -0.8, 7.5), Vector3(34.0, 1.8, 16.0), concrete_mat)
 	_add_box(Vector3(0.0, 0.25, 7.5), Vector3(32.0, 0.5, 15.0), concrete_mat)
 	_add_box(Vector3(0.0, 0.12, 15.6), Vector3(10.0, 0.25, 1.2), concrete_mat)
 

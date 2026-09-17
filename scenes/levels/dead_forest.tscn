@@ -50,10 +50,8 @@ script = ExtResource("4_props")
 [node name="Player" parent="." instance=ExtResource("2_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
 
-[node name="ConcreteFacility" type="Node3D" parent="."]
-script = ExtResource("6_facility")
-
-[node name="DeadForestEvent" type="Node3D" parent="." node_paths=PackedStringArray("player", "terrain")]
+[node name="DeadForestEvent" type="Node3D" parent="." node_paths=PackedStringArray("player", "terrain", "props")]
 script = ExtResource("5_event")
 player = NodePath("../Player")
 terrain = NodePath("../DeadForestTerrain")
+props = NodePath("../DeadForestProps")

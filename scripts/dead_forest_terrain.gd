@@ -43,6 +43,17 @@ func _init_chunk_pool() -> void:
 		body.add_child(mi); body.add_child(col); body.add_child(props); add_child(body)
 		chunks.append(body); chunk_coords.append(Vector2i(999999, 999999))
 
+var flat_zones: Array[Dictionary] = []
+
+func add_flat_zone(x: float, z: float, radius: float, target_y: float) -> void:
+	flat_zones.append({"x": x, "z": z, "r": radius, "y": target_y})
+	for i in range(chunks.size()):
+		var coord = chunk_coords[i]
+		if coord.x != 999999:
+			var cx = coord.x * CHUNK_SIZE; var cz = coord.y * CHUNK_SIZE
+			if sqrt((x - cx) * (x - cx) + (z - cz) * (z - cz)) < radius + CHUNK_SIZE:
+				_rebuild_chunk(chunks[i], coord.x, coord.y)
+
 func get_height(x: float, z: float) -> float:
 	var base_lump = noise.get_noise_2d(x, z) * 3.5
 	var micro = micro_noise.get_noise_2d(x, z) * 0.45
@@ -52,9 +63,10 @@ func get_height(x: float, z: float) -> float:
 	if spawn_dist < 18.0:
 		var factor = spawn_dist / 18.0; h = lerp(0.0, h, factor * factor)
 
-	var bldg_dist = sqrt(x * x + (z + 180.0) * (z + 180.0))
-	if bldg_dist < 26.0:
-		var bf = clampf(bldg_dist / 26.0, 0.0, 1.0); h = lerp(-0.25, h, bf * bf)
+	for fz in flat_zones:
+		var d = sqrt((x - fz.x) * (x - fz.x) + (z - fz.z) * (z - fz.z))
+		if d < fz.r:
+			var factor = clampf(d / fz.r, 0.0, 1.0); h = lerpf(fz.y, h, factor * factor)
 	return h
 
 func update_player_pos(pos: Vector3) -> void:

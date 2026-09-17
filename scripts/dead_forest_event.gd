@@ -1,124 +1,105 @@
 class_name DeadForestEvent
 extends Node3D
 
-const RUMBLE_BASS = preload("res://audio/sci-fi/Audio/lowFrequency_explosion_000.ogg")
-const CRUNCH_SOUND = preload("res://audio/sci-fi/Audio/explosionCrunch_000.ogg")
-const KLAXON_ALARM = preload("res://audio/sci-fi/Audio/forceField_000.ogg")
-const ALERT_CHIME = preload("res://audio/digital/Audio/threeTone1.ogg")
-
 const BUNKER_SCRIPT = preload("res://scripts/small_bunker.gd")
 const PYLON_SCRIPT = preload("res://scripts/nuclear_pylon.gd")
 const DOSIMETER_SCRIPT = preload("res://scripts/radiation_dosimeter.gd")
+const FACILITY_SCRIPT = preload("res://scripts/concrete_facility.gd")
 
 @export var player: CharacterBody3D
 @export var terrain: Node3D
+@export var props: Node3D
+
+enum State { WANDERING, BUNKER_ACTIVE, BEACONS_ACTIVE, COMPLETED }
+var current_state: State = State.WANDERING
 
 var wander_distance: float = 0.0
-var wander_time: float = 0.0
+var wander_target: float = 600.0
 var last_pos: Vector3 = Vector3.ZERO
-var spawn_pos: Vector3 = Vector3.ZERO
-var event_triggered: bool = false
 var bunker_instance: Node3D
+var facility_instance: Node3D
 var pylons: Array[Node3D] = []
 var dosimeter: Node
+var end_facility_pos: Vector3 = Vector3.ZERO
 
 func _ready() -> void:
-	if player:
-		last_pos = player.global_position; spawn_pos = player.global_position
+	wander_target = randf_range(400.0, 800.0)
+	if player: last_pos = player.global_position
 
 func _physics_process(delta: float) -> void:
 	if not player: return
 	var p_pos = player.global_position
 
-	if not event_triggered:
-		var d = p_pos.distance_to(last_pos)
-		if d > 0.05 and d < 10.0: wander_distance += d
-		last_pos = p_pos
-		wander_time += delta
+	match current_state:
+		State.WANDERING:
+			var d = p_pos.distance_to(last_pos)
+			if d > 0.05 and d < 10.0: wander_distance += d
+			last_pos = p_pos
+			if wander_distance >= wander_target:
+				_spawn_small_bunker_silently(p_pos)
+		State.BUNKER_ACTIVE:
+			if bunker_instance and not bunker_instance.is_claimed:
+				if bunker_instance.check_interaction(p_pos):
+					_on_dosimeter_picked_up()
 
-		if wander_time >= 25.0 and wander_distance >= 42.0 and p_pos.distance_to(spawn_pos) >= 18.0:
-			_trigger_event()
-	else:
-		if bunker_instance and not bunker_instance.is_claimed:
-			if bunker_instance.check_interaction(p_pos):
-				_on_dosimeter_acquired()
-
-func _trigger_event() -> void:
-	event_triggered = true
-	var p_pos = player.global_position
+func _spawn_small_bunker_silently(p_pos: Vector3) -> void:
+	current_state = State.BUNKER_ACTIVE
 	var cam = player.get_node_or_null("Head/Camera3D") as Camera3D
-
-	# 3.2s violent sustained seismic camera shudder
-	if cam:
-		var tw = create_tween().set_loops(18)
-		tw.tween_property(cam, "h_offset", randf_range(-0.28, 0.28), 0.08)
-		tw.tween_property(cam, "v_offset", randf_range(-0.22, 0.22), 0.08)
-		tw.finished.connect(func(): if is_instance_valid(cam): cam.h_offset = 0.0; cam.v_offset = 0.0)
-
-	_play_sound(RUMBLE_BASS, 6.0, 0.65)
-	_play_sound(CRUNCH_SOUND, 4.0, 0.8)
-	_play_sound(KLAXON_ALARM, 2.0, 0.95)
-	_show_alarm_flash()
-
-	# Spawn Small Bunker 26m directly ahead in player view
 	var fwd = -cam.global_transform.basis.z if cam else -player.global_transform.basis.z
 	fwd.y = 0.0; fwd = fwd.normalized()
-	var b_pos = p_pos + fwd * 26.0
+	if fwd.length_squared() < 0.1: fwd = Vector3(0.0, 0.0, -1.0)
+	var b_pos = p_pos + fwd * 34.0
+
+	var gy = terrain.get_height(b_pos.x, b_pos.z) if terrain else 0.0
+	if terrain and terrain.has_method("add_flat_zone"):
+		terrain.add_flat_zone(b_pos.x, b_pos.z, 10.0, gy)
+	if props and props.has_method("clear_area"):
+		props.clear_area(Vector3(b_pos.x, gy, b_pos.z), 11.0)
 
 	bunker_instance = BUNKER_SCRIPT.new()
 	bunker_instance.build_bunker(terrain, b_pos.x, b_pos.z)
 	add_child(bunker_instance)
 
-	_show_broadcast_banner()
-
-func _play_sound(stream: AudioStream, vol: float, pitch: float) -> void:
-	var a = AudioStreamPlayer.new(); a.stream = stream; a.volume_db = vol
-	a.pitch_scale = pitch; add_child(a); a.play()
-	a.finished.connect(a.queue_free)
-
-func _show_alarm_flash() -> void:
-	var canvas = CanvasLayer.new(); canvas.layer = 15; add_child(canvas)
-	var rect = ColorRect.new(); rect.color = Color(1.0, 0.55, 0.1, 0.45)
-	rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	canvas.add_child(rect)
-	var tw = create_tween()
-	tw.tween_property(rect, "color:a", 0.0, 3.2).set_trans(Tween.TRANS_SINE)
-	tw.finished.connect(canvas.queue_free)
-
-func _show_broadcast_banner() -> void:
-	var canvas = CanvasLayer.new(); canvas.layer = 14; add_child(canvas)
-	var panel = VBoxContainer.new()
-	panel.set_anchors_preset(Control.PRESET_TOP_WIDE); panel.position.y = 50; canvas.add_child(panel)
-
-	var l1 = Label.new(); l1.text = "[ ⚠ EMERGENCY AIRDROP DETECTED ⚠ ]"
-	l1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; l1.modulate = Color(1.0, 0.35, 0.2)
-	panel.add_child(l1)
-
-	var l2 = Label.new(); l2.text = ">>> ENTER SURVIVAL OUTPOST AHEAD TO RETRIEVE EQUIPMENT <<<"
-	l2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; l2.modulate = Color(1.0, 0.85, 0.3)
-	panel.add_child(l2)
-
-	_play_sound(ALERT_CHIME, 4.0, 1.0)
-	var tw = create_tween()
-	tw.tween_interval(5.5); tw.tween_property(panel, "modulate:a", 0.0, 1.5)
-	tw.finished.connect(canvas.queue_free)
-
-func _on_dosimeter_acquired() -> void:
+func _on_dosimeter_picked_up() -> void:
+	current_state = State.BEACONS_ACTIVE
 	var bx = bunker_instance.global_position.x
 	var bz = bunker_instance.global_position.z
-	_spawn_waypoints(bx, bz)
+	var cam = player.get_node_or_null("Head/Camera3D") as Camera3D
+	var trail_dir = -cam.global_transform.basis.z if cam else Vector3(0.0, 0.0, -1.0)
+	trail_dir.y = 0.0; trail_dir = trail_dir.normalized()
+	if trail_dir.length_squared() < 0.1: trail_dir = Vector3(0.0, 0.0, -1.0)
+
+	# Spawn 5 beacons spaced 60m apart
+	for i in range(1, 6):
+		var dist = float(i) * 60.0
+		var lateral = sin(float(i) * 1.5) * 14.0
+		var wx = bx + trail_dir.x * dist - trail_dir.z * lateral
+		var wz = bz + trail_dir.z * dist + trail_dir.x * lateral
+		var p_gy = terrain.get_height(wx, wz) if terrain else 0.0
+		if props and props.has_method("clear_area"):
+			props.clear_area(Vector3(wx, p_gy, wz), 5.0)
+
+		var p = PYLON_SCRIPT.new()
+		p.station_id = i; p.build_pylon(terrain, wx, wz)
+		p.station_reached.connect(_on_pylon_reached)
+		add_child(p); pylons.append(p)
+
+	end_facility_pos = Vector3(bx + trail_dir.x * 360.0, 0.0, bz + trail_dir.z * 360.0)
 
 	dosimeter = DOSIMETER_SCRIPT.new(); add_child(dosimeter)
 	dosimeter.setup_dosimeter(player, pylons)
 
-func _spawn_waypoints(start_x: float, start_z: float) -> void:
-	var count = 8
-	for i in range(1, count + 1):
-		var t = float(i) / float(count)
-		var wx = lerpf(start_x, 0.0, t)
-		var wz = lerpf(start_z, -174.0, t)
-		if i < count:
-			wx += sin(t * PI * 3.5) * 11.0
-		var p = PYLON_SCRIPT.new()
-		p.station_id = i; p.build_pylon(terrain, wx, wz)
-		add_child(p); pylons.append(p)
+func _on_pylon_reached(pylon: Node3D) -> void:
+	if pylon.station_id == 1 and not facility_instance:
+		_spawn_end_facility()
+
+func _spawn_end_facility() -> void:
+	var f_gy = terrain.get_height(end_facility_pos.x, end_facility_pos.z) if terrain else 0.0
+	if terrain and terrain.has_method("add_flat_zone"):
+		terrain.add_flat_zone(end_facility_pos.x, end_facility_pos.z, 36.0, f_gy)
+	if props and props.has_method("clear_area"):
+		props.clear_area(Vector3(end_facility_pos.x, f_gy, end_facility_pos.z), 36.0)
+
+	facility_instance = FACILITY_SCRIPT.new()
+	facility_instance.build_facility(terrain, end_facility_pos.x, end_facility_pos.z)
+	add_child(facility_instance)

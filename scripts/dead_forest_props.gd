@@ -36,15 +36,28 @@ const ROCK_TINTS: Array[Color] = [
 	Color(0.28, 0.30, 0.32), Color(0.48, 0.50, 0.52)
 ]
 
-var wood_mats: Array[ShaderMaterial] = []
-var rock_mats: Array[ShaderMaterial] = []
+var wood_mats: Array[ShaderMaterial] = []; var rock_mats: Array[ShaderMaterial] = []
 var terrain_ref: Node3D
+var exclusion_zones: Array[Dictionary] = []
 
 func init_props(terrain: Node3D) -> void:
-	terrain_ref = terrain
-	_init_materials()
-	if terrain.has_signal("chunk_recycled"):
-		terrain.chunk_recycled.connect(_on_chunk_recycled)
+	terrain_ref = terrain; _init_materials()
+	if terrain.has_signal("chunk_recycled"): terrain.chunk_recycled.connect(_on_chunk_recycled)
+
+func clear_area(center: Vector3, radius: float) -> void:
+	exclusion_zones.append({"x": center.x, "z": center.z, "r": radius})
+	if terrain_ref and terrain_ref.chunks:
+		for chunk in terrain_ref.chunks:
+			var p_node = chunk.get_node_or_null("Props")
+			if p_node:
+				for child in p_node.get_children():
+					if child is Node3D and child.global_position.distance_to(center) < radius:
+						child.queue_free()
+
+func _is_excluded(x: float, z: float) -> bool:
+	for ez in exclusion_zones:
+		if sqrt((x - ez.x) * (x - ez.x) + (z - ez.z) * (z - ez.z)) < ez.r: return true
+	return false
 
 func _init_materials() -> void:
 	for c in WOOD_TINTS:
@@ -68,36 +81,28 @@ func _on_chunk_recycled(props_node: Node3D, cx: int, cz: int) -> void:
 	rng.seed = (cx * 73856093) ^ (cz * 19349663) ^ 442211
 	var min_x = cx * 48.0 - 24.0; var min_z = cz * 48.0 - 24.0
 
-	if cx == 0 and cz == 0:
-		_spawn_clearing(props_node)
-	elif cx == 0 and cz < 0:
-		for zm in [-26.0, -46.0, -66.0, -82.0]:
-			if zm >= min_z and zm < min_z + 48.0:
-				var sx = -3.8 if int(zm) % 2 == 0 else 3.8
-				_spawn_prop(ROCKS_TALL, props_node, Vector3(sx, 0.0, zm), Vector3(1.2, 2.4, 1.2), 0.0, 0.6, 0.25, true, false, rock_mats[0])
+	if cx == 0 and cz == 0: _spawn_clearing(props_node)
 
 	for i in range(14):
 		var x = min_x + rng.randf() * 48.0; var z = min_z + rng.randf() * 48.0
-		if (x * x + z * z < 250.0) or (cz < 0 and absf(x) < 4.5) or (sqrt(x * x + (z + 180.0) * (z + 180.0)) < 22.0): continue
+		if (x * x + z * z < 250.0) or _is_excluded(x, z): continue
 		var sc = Vector3.ONE * rng.randf_range(1.15, 2.0)
 		_spawn_prop(TREE_POOL[rng.randi_range(0, TREE_POOL.size() - 1)], props_node, Vector3(x, 0.0, z), sc, rng.randf() * TAU, 0.4 * sc.x, 0.35 * sc.y, true, true, null)
 	for i in range(3):
 		var x = min_x + rng.randf() * 48.0; var z = min_z + rng.randf() * 48.0
-		if (cz < 0 and absf(x) < 4.0) or (sqrt(x * x + (z + 180.0) * (z + 180.0)) < 20.0): continue
+		if _is_excluded(x, z): continue
 		var sc = Vector3.ONE * rng.randf_range(1.1, 2.0)
 		_spawn_prop(ROCK_POOL[rng.randi_range(0, ROCK_POOL.size() - 1)], props_node, Vector3(x, 0.0, z), sc, rng.randf() * TAU, 0.6 * sc.x, 0.28 * sc.y, true, false, rock_mats[rng.randi_range(0, rock_mats.size() - 1)])
 	for i in range(3):
 		var x = min_x + rng.randf() * 48.0; var z = min_z + rng.randf() * 48.0
-		if (cz < 0 and absf(x) < 4.0) or (sqrt(x * x + (z + 180.0) * (z + 180.0)) < 20.0): continue
+		if _is_excluded(x, z): continue
 		var r = rng.randf(); var scn = TRUNK if r < 0.35 else (TRUNK_LONG if r < 0.65 else PINE_FALL)
 		var sc = Vector3.ONE * rng.randf_range(1.1, 1.5)
 		_spawn_prop(scn, props_node, Vector3(x, 0.0, z), sc, rng.randf() * TAU, 0.5 * sc.x, 0.20 * sc.y, true, false, wood_mats[rng.randi_range(0, wood_mats.size() - 1)])
 	for i in range(5):
 		var x = min_x + rng.randf() * 48.0; var z = min_z + rng.randf() * 48.0
+		if _is_excluded(x, z): continue
 		_spawn_prop(DEBRIS_WOOD, props_node, Vector3(x, 0.0, z), Vector3.ONE * rng.randf_range(1.0, 1.8), rng.randf() * TAU, 0.3, 0.05, false, false, wood_mats[rng.randi_range(0, wood_mats.size() - 1)])
-	for i in range(4):
-		var x = min_x + rng.randf() * 48.0; var z = min_z + rng.randf() * 48.0
-		_spawn_prop(TREE_POOL[rng.randi_range(0, TREE_POOL.size() - 1)], props_node, Vector3(x, 0.0, z), Vector3.ONE * rng.randf_range(0.15, 0.25), rng.randf() * TAU, 0.25, 0.15, false, true, null)
 
 func _spawn_clearing(parent: Node3D) -> void:
 	_spawn_prop(ALTAR_STONE, parent, Vector3(0.0, 0.0, -6.5), Vector3(1.4, 1.4, 1.4), 0.2, 0.7, 0.15, true, false, rock_mats[0])

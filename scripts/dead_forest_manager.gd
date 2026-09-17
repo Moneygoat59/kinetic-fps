@@ -75,8 +75,6 @@ func _init_world() -> void:
 	if terrain:
 		ground_y = terrain.get_height(0.0, 0.0)
 		if props and props.has_method("init_props"): props.init_props(terrain)
-		var fac = get_node_or_null("ConcreteFacility")
-		if fac and fac.has_method("build_facility"): fac.build_facility(terrain)
 
 	spawn_point = Vector3(0.0, ground_y + 1.2, 0.0)
 	if player:
