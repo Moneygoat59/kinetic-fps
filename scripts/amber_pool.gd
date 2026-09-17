@@ -13,8 +13,7 @@ var pool_light: OmniLight3D
 var bubble_audio: AudioStreamPlayer3D
 var sizzle_audio: AudioStreamPlayer3D
 var time_offset: float = 0.0
-var blisters: Array[MeshInstance3D] = []
-var blister_offsets: Array[float] = []
+var liquid_mat: StandardMaterial3D
 
 static func _load_tex(path: String) -> ImageTexture:
 	var img = Image.load_from_file(path)
@@ -36,32 +35,25 @@ func build_pool(terrain: Node3D, pos_x: float, pos_z: float, radius: float, dept
 	var stain_mi = MeshInstance3D.new(); stain_mi.mesh = _create_seep_mesh(radius * 1.25, p_seed + 19)
 	stain_mi.material_override = stain_mat; stain_mi.position.y = -0.02; add_child(stain_mi)
 
-	var mat = StandardMaterial3D.new()
-	mat.albedo_texture = sludge_tex; mat.emission_enabled = true; mat.emission_texture = emit_tex
-	mat.emission_energy_multiplier = 2.8
-	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; mat.roughness = 0.12; mat.metallic = 0.15
-	mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED; mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	liquid_mat = StandardMaterial3D.new()
+	liquid_mat.albedo_texture = sludge_tex; liquid_mat.emission_enabled = true; liquid_mat.emission_texture = emit_tex
+	liquid_mat.emission_energy_multiplier = 2.6
+	liquid_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	liquid_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; liquid_mat.roughness = 0.12; liquid_mat.metallic = 0.15
+	liquid_mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED; liquid_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	var mi = MeshInstance3D.new(); mi.mesh = _create_seep_mesh(radius, p_seed)
-	mi.material_override = mat; add_child(mi)
-
-	for i in range(4):
-		var bmi = MeshInstance3D.new(); var sph = SphereMesh.new(); var brad = randf_range(0.10, 0.22)
-		sph.radius = brad; sph.height = brad * 0.8; bmi.mesh = sph; bmi.material_override = mat
-		var ang = randf() * TAU; var dist = randf_range(0.15, radius * 0.60)
-		bmi.position = Vector3(cos(ang) * dist, 0.01, sin(ang) * dist)
-		add_child(bmi); blisters.append(bmi); blister_offsets.append(randf() * 10.0)
+	mi.material_override = liquid_mat; add_child(mi)
 
 	pool_light = OmniLight3D.new(); pool_light.position = Vector3(0.0, 0.35, 0.0)
-	pool_light.light_color = Color(1.0, 0.58, 0.10); pool_light.light_energy = 2.4
+	pool_light.light_color = Color(1.0, 0.58, 0.10); pool_light.light_energy = 2.0
 	pool_light.omni_range = radius * 2.8; add_child(pool_light)
 
 	var col = CollisionShape3D.new(); var shape = CylinderShape3D.new()
 	shape.radius = radius * 0.75; shape.height = 0.40; col.shape = shape; col.position.y = 0.10; add_child(col)
 
 	bubble_audio = AudioStreamPlayer3D.new(); bubble_audio.stream = BUBBLE_SOUND
-	bubble_audio.unit_size = 6.0; bubble_audio.max_distance = 22.0; bubble_audio.volume_db = -9.0
+	bubble_audio.unit_size = 6.0; bubble_audio.max_distance = 22.0; bubble_audio.volume_db = -11.0
 	bubble_audio.finished.connect(_loop_bubbles); add_child(bubble_audio)
 
 	sizzle_audio = AudioStreamPlayer3D.new(); sizzle_audio.stream = SIZZLE_SOUND
@@ -99,13 +91,11 @@ func _on_body_exited(body: Node3D) -> void:
 	if body == player_in_pool: player_in_pool = null
 
 func _process(_delta: float) -> void:
-	var t = Time.get_ticks_msec() * 0.001
-	if pool_light:
-		var pulse = (sin(t * 4.0 + time_offset) + 1.0) * 0.5
-		pool_light.light_energy = lerpf(1.6, 2.8, pulse)
-	for i in range(blisters.size()):
-		var b = blisters[i]
-		if is_instance_valid(b): b.position.y = 0.02 + sin(t * 3.0 + blister_offsets[i]) * 0.02
+	if liquid_mat:
+		var t = Time.get_ticks_msec() * 0.0006
+		var u_shift = sin(t + time_offset) * 0.028
+		var v_shift = cos(t * 0.85 + time_offset * 1.3) * 0.028
+		liquid_mat.uv1_offset = Vector3(u_shift, v_shift, 0.0)
 
 func _physics_process(delta: float) -> void:
 	if not player_in_pool: return
