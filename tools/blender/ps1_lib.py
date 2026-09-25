@@ -28,6 +28,7 @@ def material(name, rgb, roughness=1.0):
     bsdf = m.node_tree.nodes["Principled BSDF"]
     bsdf.inputs["Base Color"].default_value = (rgb[0], rgb[1], rgb[2], 1.0)
     bsdf.inputs["Roughness"].default_value = roughness
+    bsdf.inputs["Specular IOR Level"].default_value = 0.0
     return m
 
 
@@ -116,3 +117,105 @@ def export_glb(path, objs=None):
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", use_selection=True, export_apply=True,
                               export_yup=True, export_materials="EXPORT", export_cameras=False, export_lights=False)
     print(f"EXPORT ok {path}  tris={tri_count(meshes)}")
+
+
+# ---------------------------------------------------------------- extended helpers (buildings)
+def tex_material(name, image_path, tint=(1, 1, 1), roughness=1.0, emission=None, emission_strength=0.0):
+    """Material with a nearest-filtered image texture (PS1 look). Optional emission colour/strength."""
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    bsdf = nt.nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = roughness
+    bsdf.inputs["Specular IOR Level"].default_value = 0.0  # matte PS1 look, no grazing-angle glints
+    if image_path:
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = bpy.data.images.load(os.path.abspath(image_path))
+        tex.interpolation = "Closest"
+        if tint != (1, 1, 1):
+            mix = nt.nodes.new("ShaderNodeMix")
+            mix.data_type = "RGBA"
+            mix.blend_type = "MULTIPLY"
+            mix.inputs[0].default_value = 1.0
+            mix.inputs[7].default_value = (tint[0], tint[1], tint[2], 1.0)
+            nt.links.new(tex.outputs["Color"], mix.inputs[6])
+            nt.links.new(mix.outputs[2], bsdf.inputs["Base Color"])
+        else:
+            nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    else:
+        bsdf.inputs["Base Color"].default_value = (tint[0], tint[1], tint[2], 1.0)
+    if emission:
+        bsdf.inputs["Emission Color"].default_value = (emission[0], emission[1], emission[2], 1.0)
+        bsdf.inputs["Emission Strength"].default_value = emission_strength
+    return m
+
+
+def chamfer_box(name, size, loc, mat=None, c=0.1, rot_deg=(0, 0, 0)):
+    o = box(name, size, loc, mat, rot_deg)
+    mod = o.modifiers.new("bev", "BEVEL")
+    mod.width = c
+    mod.segments = 1
+    mod.limit_method = "ANGLE"
+    bpy.context.view_layer.objects.active = o
+    bpy.ops.object.modifier_apply(modifier="bev")
+    return o
+
+
+def prism(name, pts_xz, depth, loc=(0, 0, 0), mat=None):
+    """Extrude a polygon drawn in the XZ plane (list of (x,z)) along +Y by `depth`. loc offsets the whole prism."""
+    n = len(pts_xz)
+    verts = [(x, 0.0, z) for x, z in pts_xz] + [(x, depth, z) for x, z in pts_xz]
+    faces = [list(range(n))[::-1], list(range(n, 2 * n))]
+    for i in range(n):
+        j = (i + 1) % n
+        faces.append([i, j, n + j, n + i])
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(verts, [], faces)
+    me.update()
+    o = bpy.data.objects.new(name, me)
+    bpy.context.collection.objects.link(o)
+    o.location = loc
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(me)
+    bm.free()
+    if mat:
+        me.materials.append(mat)
+    return o
+
+
+def world_uv(obj, tile=2.0):
+    """Box-project UVs from world coordinates so textures keep a constant texel density on every face (tile = metres per repeat)."""
+    me = obj.data
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    uv = bm.loops.layers.uv.verify()
+    mw = obj.matrix_world
+    for f in bm.faces:
+        n = (mw.to_3x3() @ f.normal)
+        ax = max(range(3), key=lambda i: abs(n[i]))
+        for l in f.loops:
+            p = mw @ l.vert.co
+            u, v = [(p.y, p.z), (p.x, p.z), (p.x, p.y)][ax]
+            l[uv].uv = (u / tile, v / tile)
+    bm.to_mesh(me)
+    bm.free()
+
+
+def empty(name, loc):
+    e = bpy.data.objects.new(name, None)
+    e.empty_display_type = "ARROWS"
+    e.location = loc
+    bpy.context.collection.objects.link(e)
+    return e
+
+
+def export_all(path):
+    """Export every object in the scene (meshes + empties) as .glb."""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    bpy.ops.object.select_all(action="SELECT")
+    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", use_selection=True, export_apply=True,
+                              export_yup=True, export_materials="EXPORT", export_cameras=False, export_lights=False)
+    meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+    print(f"EXPORT ok {path}  objects={len(bpy.context.scene.objects)} tris={tri_count(meshes)}")

@@ -30,3 +30,11 @@ Output goes to `shots/` (git-ignored). `-Exec path.gd` runs a script with `func 
 ## MCP
 `.mcp.json` registers the `godot` MCP server (`~/tools/godot-mcp`): run/stop the project, debug output, live scene tree,
 `game_screenshot`, `game_eval`, property get/set, scene create/modify. Approve it once when prompted.
+
+## Extra tools
+| Tool | Purpose |
+| :--- | :--- |
+| `tools\tree_dump.gd` | `godot --headless --path . --script tools/tree_dump.gd -- res://x.glb` prints the node tree as Godot imported it (meshes/tris, collision, markers). New `.glb` files need one `godot --headless --path . --import` first. |
+| `tools\exec\*.gd` | Hook scripts for `capture.ps1 -Exec` (e.g. `build_small_bunker.gd` builds the procedural bunker before the shot). |
+| `tools\blender\textures.py` | Regenerates the procedural PS1 textures into `models/generated/tex/`. |
+| `tools\blender\props\outpost73_bunker.py` | Outpost 73 bunker generator (walkable shell, doors, markers). Naming: `*-colonly` = collision-only trimesh on import, `marker_*` = gameplay anchors. |

@@ -122,9 +122,17 @@ func _load(path: String) -> Node:
 		var st := GLTFState.new()
 		if doc.append_from_file(ProjectSettings.globalize_path(path), st) != OK:
 			return null
-		return doc.generate_scene(st)
+		var scn := doc.generate_scene(st)
+		_hide_colonly(scn)
+		return scn
 	var res = load(path)
 	return res.instantiate() if res is PackedScene else null
+
+func _hide_colonly(n: Node) -> void:  # editor import makes "-colonly" nodes collision-only; hide them like the editor would
+	if n is Node3D and (String(n.name).ends_with("-colonly") or String(n.name).ends_with("-col")):
+		n.visible = false
+	for c in n.get_children():
+		_hide_colonly(c)
 
 func _add_light() -> void:
 	var env := Environment.new()
