@@ -20,6 +20,10 @@ var door: Node
 var pickup: Node3D
 var screens: Node
 var _roof_light: OmniLight3D
+var _pulse: Array[OmniLight3D] = []       # amber well lights that breathe
+var _pulse_base := PackedFloat32Array()
+var _flick: Array[OmniLight3D] = []       # failing lamps
+var _flick_base := PackedFloat32Array()
 
 
 static func preload_models() -> void:
@@ -36,7 +40,10 @@ func build_bunker(terrain: Node3D, pos_x: float, pos_z: float) -> void:
 	model = scene.instantiate() as Node3D
 	add_child(model)
 	Fx.make_matte(model)
-	_roof_light = Fx.add_lights(model)
+	var made := Fx.add_lights(model)
+	_roof_light = made.get(Fx.ROOF_LIGHT) as OmniLight3D
+	Fx.collect(made, Fx.PULSE_LIGHTS, _pulse, _pulse_base)
+	Fx.collect(made, Fx.FLICKER_LIGHTS, _flick, _flick_base)
 	Fx.add_grime(self)
 	_setup_door()
 	_setup_pickup()
@@ -85,8 +92,13 @@ func _setup_pickup() -> void:
 
 
 func _process(_delta: float) -> void:
+	var t := Time.get_ticks_msec() * 0.001
 	if _roof_light:
-		_roof_light.light_energy = lerpf(2.5, 6.5, (sin(Time.get_ticks_msec() * 0.008) + 1.0) * 0.5)
+		_roof_light.light_energy = lerpf(2.5, 6.5, (sin(t * 8.0) + 1.0) * 0.5)
+	for i in _pulse.size():
+		_pulse[i].light_energy = _pulse_base[i] * (0.75 + 0.25 * sin(t * 2.1 + i * 1.3))
+	for i in _flick.size():
+		_flick[i].light_energy = _flick_base[i] * Fx.flicker(t, i * 1.7)
 
 
 ## Called every physics frame by DeadForestEvent. Returns true on the frame the tracker is taken.

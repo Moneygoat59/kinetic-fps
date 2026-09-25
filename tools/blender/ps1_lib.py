@@ -182,6 +182,24 @@ def decal_material(name, image_path):
     return m
 
 
+def emissive_decal_material(name, image_path, strength=1.5):
+    """Alpha-blended AND emissive (glowing puddles): colour + emission from the image, alpha from its alpha channel."""
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    bsdf = nt.nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = 1.0
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = bpy.data.images.load(os.path.abspath(image_path))
+    tex.interpolation = "Closest"
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
+    nt.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
+    bsdf.inputs["Emission Strength"].default_value = strength
+    m.surface_render_method = "BLENDED"
+    return m
+
+
 def quad(name, center, w, h, facing, mat, up=(0, 0, 1)):
     """Single quad facing an axis direction ('+x','-x','+y','-y','+z','-z'), UV 0..1 (image top = `up`).
     Used for screens and decals; the image is upright and unmirrored when viewed from the facing side."""

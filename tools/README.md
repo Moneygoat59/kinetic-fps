@@ -56,3 +56,13 @@ darken like contact shadows. Emissive materials (name prefix `bunker_glow`) are 
   hazard stripe, pinned notes. Offset 1-2 cm from the surface; floor decals use different heights to avoid z-fighting.
 - To change screen text/graphics, edit `screens()` in `textures.py`, rerun it, then `godot --headless --path . --import`.
 - Blender alpha: `material.surface_render_method = "BLENDED"` exports as glTF `alphaMode: BLEND` (see `ps1_lib.decal_material`).
+
+## Theme (v4): abandoned amber-extraction well
+Outpost 73 is a derelict extraction well that has run alone for 100+ years. Art rules that keep it coherent:
+- **Obsidian concrete**: textures are near-black (mean ~0.09) with a cool tint; dirt shows up *pale* (dust, salt bloom, dust-filled cracks) and
+  glassy glints. Concrete keeps a specular sheen at runtime (`bunker_fx.gd make_matte`); everything else is matte.
+- **Colour comes only from amber** (glowing liquid, crystals, window slits, screens) plus rust and dried-amber crust.
+- **Decay is geometry + decals**: broken cornice + rebar + rubble, rotted ladder, sagging dish, toppled chair, cobwebs, dust, papers, cracks.
+- **Machinery still runs**: `bunker_liquid` node (materials `bunker_amber_liquid` flows, `bunker_amber_pool` pulses), pulsing well lights,
+  failing lamps that flicker (`Fx.flicker`), screens showing uptime/flow/pipeline data.
+- Keep exterior detail low; put new detail in textures/decals first. Amber-lit surfaces look brown fast: keep exterior light energies low (~1-2).

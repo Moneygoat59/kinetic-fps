@@ -1,10 +1,13 @@
-"""Outpost 73 bunker v3: a plain poured-concrete blockhouse outside, a cluttered, lived-in control room inside.
+"""Outpost 73 bunker v4: an ABANDONED amber-extraction well. Obsidian-black concrete, a century of decay, machinery still pumping.
 Run:  python tools/blender/textures.py   (once)   then   tools\\blender.ps1 tools/blender/props/outpost73_bunker.py
 Out:  models/generated/outpost73_bunker.glb
 Blender axes (Z up); front (door) faces -Y, exported to glTF +Z. 1 unit = 1 m.
 Nodes: bunker_shell (visual, baked vertex-colour AO), bunker_decals (alpha stencils/stains/notes), bunker_screens (emissive CRT
-       quads, materials bunker_scr_* animated by bunker_screens.gd), shell-colonly (Godot builds trimesh collision),
+       quads, materials bunker_scr_* animated by bunker_screens.gd), bunker_liquid (glowing amber: bunker_amber_liquid flows,
+       bunker_amber_pool pulses), shell-colonly (Godot builds trimesh collision),
        door_left / door_right (slide on local X, 1.0 m), marker_* empties (gameplay anchors, see outpost_bunker.gd).
+Extraction: wellhead casing + collar behind the bunker, two amber-filled pipes to the roof, a well riser in the control room.
+Decay: broken cornice + rubble, damaged ladder and mast, dust, cobwebs, papers, rust and dried-amber crust, amber crystal growths.
 Exterior: deliberately low-detail concrete mass (chamfered corner blocks, one plinth, one cornice, one door frame); the
 detail comes from the concrete texture and decals. Interior 4.4 x 3.8 m, floor z=0.25, ceiling z=2.9, door opening 1.8 x 2.25 m.
 """
@@ -41,6 +44,14 @@ S_SCAN = L.screen_material("bunker_scr_scan", T("screen_scan_a.png"), 1.2)
 S_STATIC = L.screen_material("bunker_scr_static", T("screen_static.png"), 0.8)
 S_MAP = L.screen_material("bunker_scr_map", T("screen_map_a.png"), 1.1)
 S_GEN = L.screen_material("bunker_scr_gen", T("screen_gen_a.png"), 1.0)
+LQ_FLOW = L.screen_material("bunker_amber_liquid", T("liquid_flow.png"), 1.6)
+LQ_POOL = L.emissive_decal_material("bunker_amber_pool", T("liquid_pool.png"), 1.1)
+D_DRIPS = L.decal_material("bunker_decal_drips_amber", T("decal_drips_amber.png"))
+D_DUST = L.decal_material("bunker_decal_dust", T("decal_dust.png"))
+D_WEB = L.decal_material("bunker_decal_cobweb", T("decal_cobweb.png"))
+D_PAPERS = L.decal_material("bunker_decal_papers", T("decal_papers.png"))
+D_CRUST = L.decal_material("bunker_decal_crust", T("decal_amber_crust.png"))
+D_CRACK = L.decal_material("bunker_decal_crack", T("decal_crack.png"))
 D_STREAK = L.decal_material("bunker_decal_streaks", T("decal_streaks.png"))
 D_STENCIL = L.decal_material("bunker_decal_stencil", T("decal_stencil.png"))
 D_HAZARD = L.decal_material("bunker_decal_hazard", T("decal_hazard.png"))
@@ -55,7 +66,7 @@ CX, CY = 2.2, 1.9                  # interior cavity half-widths
 FZ, CZ = 0.25, 2.9                 # interior floor / ceiling heights
 DW, DH = 0.9, 2.5                  # door half-width, door top
 
-parts, cols, door_l, door_r, decals, screens = [], [], [], [], [], []
+parts, cols, door_l, door_r, decals, screens, liquids = [], [], [], [], [], [], []
 
 
 def B(name, size, loc, mat, c=0.0, rot=(0, 0, 0), into=None):
@@ -89,6 +100,29 @@ def DECAL(name, center, w, h, facing, mat, up=(0, 0, 1)):
 
 def SCREEN(name, center, w, h, facing, mat):
     screens.append(L.quad(name, center, w, h, facing, mat))
+
+
+def LIQ_CYL(name, r, d, loc, axis="z", v=10):
+    """Glowing amber cylinder (sight-glass sleeve / well surface / cap). Lives in the bunker_liquid node (flow animated at runtime)."""
+    rot = {"z": (0, 0, 0), "x": (0, 90, 0), "y": (90, 0, 0)}[axis]
+    liquids.append(L.cylinder(name, r, d, loc, LQ_FLOW, v, rot))
+
+
+def POOL(name, center, w, h):
+    """Glowing amber puddle lying on a floor/ground plane."""
+    liquids.append(L.quad(name, center, w, h, "+z", LQ_POOL, up=(0, 1, 0)))
+
+
+def CRYSTALS(prefix, cx, cy, z0, count, radius, seed, size=1.0):
+    """Cluster of amber crystal spikes growing out of a surface (glowing, lightly tilted)."""
+    import random
+    rng = random.Random(seed)
+    for i in range(count):
+        a, d = rng.uniform(0, math.tau), rng.uniform(0.3, 1.0) * radius
+        h = rng.uniform(0.25, 0.7) * size
+        o = L.cone(f"{prefix}{i}", 0.07 * size, 0.008, h, (cx + math.cos(a) * d, cy + math.sin(a) * d, z0 + h / 2), LQ_FLOW, 6)
+        o.rotation_euler = (rng.uniform(-0.35, 0.35), rng.uniform(-0.35, 0.35), rng.uniform(0, math.tau))
+        liquids.append(o)
 
 
 def slab(name, x0, x1, y0, y1, z0, z1, mat, col=True):
@@ -130,8 +164,17 @@ for sx in (-1, 1):
     B(f"plinth_front{sx}", (2.75, 0.35, 1.4), (sx * 2.575, -HY - 0.175, -0.3), M_CON_T, 0.1)
     for sy in (-1, 1):
         B(f"corner{sx}{sy}", (1.5, 1.5, 3.6), (sx * 2.97, sy * 2.67, 2.2), M_CON, 0.3)
-B("cornice", (8.2, 7.6, 0.5), (0, 0, 4.25), M_CON_T, 0.25)
-COL("cornice_c", (8.2, 7.6, 0.5), (0, 0, 4.25))
+B("cornice_a", (6.2, 7.6, 0.5), (-1.0, 0, 4.25), M_CON_T, 0.25)              # front-right corner has broken away
+B("cornice_b", (2.0, 5.7, 0.5), (3.1, 0.95, 4.25), M_CON_T, 0.25)
+COL("cornice_a_c", (6.2, 7.6, 0.5), (-1.0, 0, 4.25))
+COL("cornice_b_c", (2.0, 5.7, 0.5), (3.1, 0.95, 4.25))
+for i, (bx, by) in enumerate(((2.6, -1.85), (3.2, -1.9), (3.8, -1.85), (2.1, -2.3), (2.1, -3.0))):   # exposed rusted rebar
+    TUBE(f"rebar{i}", (bx, by, 4.35), (bx + 0.1 * (i % 2), by - 0.45 - 0.1 * i, 4.55 + 0.1 * (i % 3)), 0.018, M_RUST, 5)
+B("rubble_a", (1.4, 1.1, 0.5), (3.7, -4.8, 0.3), M_CON_T, 0.15, rot=(8, -12, 25))      # fallen cornice chunks
+B("rubble_b", (0.8, 0.7, 0.4), (2.7, -4.4, 0.22), M_CON_T, 0.1, rot=(-10, 15, -30))
+B("rubble_c", (0.5, 0.4, 0.3), (4.3, -4.2, 0.16), M_CON_T, 0.08, rot=(20, 5, 60))
+B("rubble_d", (0.35, 0.3, 0.25), (3.0, -5.3, 0.13), M_CON_T, 0.06, rot=(-5, 25, 10))
+B("rubble_e", (0.45, 0.35, 0.28), (3.9, -3.85, 0.4), M_CON_T, 0.06, rot=(15, -10, 35))
 B("win_brow_f", (2.3, 0.2, 0.1), (0, -HY - 0.1, 3.72), M_CON_T, 0.02)          # front slit window: glow + brow only
 B("win_glow_f", (1.9, 0.05, 0.2), (0, -HY + 0.005, 3.42), M_AMBER)
 B("win_brow_r", (0.2, 0.9, 0.1), (HX + 0.1, -1.25, 3.42), M_CON_T, 0.02)       # side slits
@@ -142,23 +185,46 @@ B("win_glow_l", (0.05, 0.7, 0.2), (-HX + 0.005, 1.2, 3.12), M_AMBER)
 CYL("dish_pedestal", 0.25, 0.5, (1.0, 0.6, 4.75), M_MET_D, v=8)
 L.cone("dish", 0.08, 0.8, 0.35, (1.0, 0.4, 5.2), M_MET, 8)
 parts.append(bpy.context.active_object)
-bpy.context.active_object.rotation_euler = (math.radians(40), 0, 0)
-d40 = (0.0, -math.sin(math.radians(40)), math.cos(math.radians(40)))
-TUBE("dish_feed", (1.0, 0.4, 5.2), (1.0, 0.4 + d40[1] * 0.7, 5.2 + d40[2] * 0.7), 0.03)
-TUBE("antenna", (0.2, 0.9, 4.5), (0.2, 0.9, 6.0), 0.025)
+bpy.context.active_object.rotation_euler = (math.radians(74), 0, math.radians(22))   # dish has sagged on its mount
+TUBE("antenna_lo", (0.2, 0.9, 4.5), (0.2, 0.9, 5.3), 0.025)
+TUBE("antenna_hi", (0.2, 0.9, 5.3), (0.85, 1.35, 5.65), 0.022)                           # bent over
 # rear: one louvered vent plate and two straight pipes
 B("vent_plate", (1.7, 0.1, 1.7), (-0.9, HY + 0.05, 2.5), M_MET_D, 0.03)
 for i in range(6):
     B(f"vent_slat{i}", (1.4, 0.07, 0.09), (-0.9, HY + 0.13, 1.95 + i * 0.22), M_MET, rot=(25, 0, 0))
-TUBE("pipe_a", (1.75, HY + 0.15, 1.0), (1.75, HY + 0.15, 4.85), 0.1, M_MET_D, 8)
-TUBE("pipe_b", (2.05, HY + 0.15, 1.0), (2.05, HY + 0.15, 4.85), 0.1, M_MET_D, 8)
+# ---- extraction wellhead behind the bunker: casing + collar in the ground, two amber pipes to the wall and up to the roof
+WX, WY = 1.9, 5.6
+CYL("wh_collar", 0.95, 1.4, (WX, WY, -0.3), M_CON_T, v=12)                       # z -1.0 .. 0.4
+CYL("wh_casing", 0.5, 1.3, (WX, WY, 1.05), M_MET_D, v=10)                        # z 0.4 .. 1.7
+CYL("wh_flange_lo", 0.62, 0.08, (WX, WY, 0.9), M_MET, v=10)
+CYL("wh_flange_hi", 0.62, 0.08, (WX, WY, 1.7), M_MET, v=10)
+LIQ_CYL("wh_glow", 0.36, 0.05, (WX, WY, 1.76), "z", 10)                          # amber surface in the casing mouth
+PIPE("pipe_a", [(1.75, 5.3, 1.3), (1.75, HY + 0.15, 1.3), (1.75, HY + 0.15, 4.85)], 0.1, M_MET_D)
+PIPE("pipe_b", [(2.05, 5.3, 0.9), (2.05, HY + 0.15, 0.9), (2.05, HY + 0.15, 4.85)], 0.1, M_MET_D)
+for px, pz in ((1.75, 1.3), (2.05, 0.9)):
+    TUBE(f"valve_stem{px}", (px, 4.4, pz + 0.1), (px, 4.4, pz + 0.5), 0.03, M_MET, 6)
+    CYL(f"valve_wheel{px}", 0.17, 0.03, (px, 4.4, pz + 0.52), M_MET_D, v=8)
+    for y in (4.0, 4.85):
+        LIQ_CYL(f"sleeve_h{px}{y}", 0.118, 0.28, (px, y, pz), "y")
+    for z in (2.5, 3.7):
+        LIQ_CYL(f"sleeve_v{px}{z}", 0.118, 0.3, (px, HY + 0.15, z), "z")
+    LIQ_CYL(f"pipe_cap{px}", 0.13, 0.08, (px, HY + 0.15, 4.9), "z")
+COL("wh_col", (1.9, 1.9, 2.8), (WX, WY, 0.4))
+CRYSTALS("wh_cr", WX, WY, 0.4, 6, 0.75, 5, 1.1)                                     # amber growth around the casing base
+CRYSTALS("wh_cr_top", WX, WY, 1.7, 3, 0.35, 8, 0.7)
+POOL("spill_wh", (WX, WY, 0.045), 4.4, 4.4)
+DECAL("crust_wh", (WX, WY, 0.03), 3.6, 3.6, "+z", D_CRUST, up=(0, 1, 0))
+DECAL("drips_amber_a", (1.9, HY + 0.012, 1.0), 1.0, 1.6, "+y", D_DRIPS)
 # left: one hatch. right: ladder to the roof
 B("l_hatch", (0.1, 1.4, 2.0), (-HX - 0.05, -0.9, 1.35), M_MET_D, 0.03)
 CYL("l_handle", 0.04, 0.4, (-HX - 0.16, -0.4, 1.3), M_MET, v=6)
 for s in (-1, 1):
-    TUBE(f"ladder_rail{s}", (4.75, -0.2 + s * 0.28, 0.75), (4.75, -0.2 + s * 0.28, 5.0), 0.03)
-for i in range(13):
+    TUBE(f"ladder_rail{s}", (4.75, -0.2 + s * 0.28, 2.3), (4.75, -0.2 + s * 0.28, 5.0), 0.03)                 # lower half has rotted away
+    TUBE(f"ladder_fallen{s}", (4.5, -2.6 + s * 0.14, 0.06), (4.9, -0.5 + s * 0.14, 0.12), 0.03)
+for i in range(6, 13):
     CYL(f"ladder_rung{i}", 0.022, 0.56, (4.75, -0.2, 0.95 + i * 0.32), M_MET, "y", 6)
+for y in (-2.2, -1.7, -1.2, -0.8):
+    CYL(f"ladder_fallen_rung{y}", 0.022, 0.5, (4.7, y, 0.09), M_MET, "x", 6)
 for z in (1.2, 2.4, 3.4):
     for s in (-1, 1):
         B(f"ladder_brk{z}{s}", (1.15, 0.06, 0.06), (HX + 0.575, -0.2 + s * 0.28, z), M_MET_D)
@@ -170,6 +236,9 @@ DECAL("streak_r", (HX + 0.012, -1.25, 2.0), 1.0, 2.0, "+x", D_STREAK)
 DECAL("streak_l", (-HX - 0.012, 1.45, 2.0), 0.9, 2.0, "-x", D_STREAK)
 DECAL("streak_b1", (-0.9, HY + 0.012, 0.85), 1.5, 1.5, "+y", D_STREAK)
 DECAL("streak_b2", (0.55, HY + 0.012, 2.6), 0.8, 1.7, "+y", D_STREAK)
+DECAL("crack_f", (1.92, -HY - 0.012, 1.9), 0.5, 1.0, "-y", D_CRACK)
+DECAL("crack_l", (-HX - 0.012, 1.75, 1.6), 0.4, 1.2, "-x", D_CRACK)
+DECAL("crack_r", (HX + 0.012, 1.7, 1.1), 0.4, 1.2, "+x", D_CRACK)
 
 # ================================================================ BLAST DOOR (two leaves, jagged seam, chamfered top corners)
 SEAM = [(0.0, FZ), (0.12, 0.65), (-0.10, 1.05), (0.12, 1.45), (-0.08, 1.85), (0.10, 2.15), (0.0, DH)]
@@ -219,10 +288,10 @@ B("keys_r", (0.5, 0.22, 0.04), (1.6, -1.25, 1.12), M_MET, rot=(8, 0, 0))
 for i, x in enumerate((1.95, 2.03)):
     B(f"btn_r{i}", (0.05, 0.05, 0.03), (x, -1.32, 1.14), M_HAZ)
 CYL("mug", 0.04, 0.09, (1.25, -1.5, 1.145), M_MET, v=8)
-B("chair_seat", (0.42, 0.42, 0.05), (1.5, -0.85, 0.68), M_MET_D, 0.02, rot=(0, 0, 18))
-B("chair_back", (0.42, 0.05, 0.42), (1.42, -0.66, 0.93), M_MET_D, 0.02, rot=(0, 0, 18))
-CYL("chair_post", 0.03, 0.42, (1.5, -0.85, 0.46), M_MET, v=6)
-B("chair_base", (0.5, 0.06, 0.05), (1.5, -0.85, 0.27), M_MET, rot=(0, 0, 18))
+B("chair_seat", (0.42, 0.42, 0.05), (1.35, -0.7, 0.48), M_MET_D, 0.02, rot=(90, 0, 20))       # toppled onto its back
+B("chair_back", (0.42, 0.05, 0.42), (1.28, -0.98, 0.29), M_MET_D, 0.02, rot=(90, 0, 20))
+CYL("chair_post", 0.03, 0.42, (1.4, -0.45, 0.5), M_MET, "y", 6)
+B("chair_base", (0.5, 0.06, 0.05), (1.45, -0.24, 0.5), M_MET, rot=(0, 0, 20))
 # rear wall: louver box vent, clamped elbow pipes, wired cabinet, extinguisher
 B("int_vent", (1.5, 0.3, 1.5), (-0.9, CY - 0.15, 1.95), M_MET_D, 0.08)
 for i in range(6):
@@ -255,10 +324,24 @@ PIPE("gen_pipe", [(CX - 0.4, -0.7, FZ + 0.6), (CX - 0.4, -1.3, FZ + 0.6), (CX - 
 B("map_frame", (0.06, 1.25, 0.85), (CX - 0.075, -0.85, 2.05), M_MET_D, 0.02)
 SCREEN("scr_map", (CX - 0.108, -0.85, 2.05), 1.12, 0.7, "-x", S_MAP)
 # storage: crates and a barrel in the rear-left corner
-B("crate_a", (0.55, 0.42, 0.4), (-1.75, 1.55, FZ + 0.2), M_BOX, 0.02, rot=(0, 0, 12))
-B("crate_b", (0.4, 0.36, 0.3), (-1.78, 1.55, FZ + 0.55), M_BOX, 0.02, rot=(0, 0, -8))
-CYL("barrel", 0.27, 0.8, (-1.3, 1.5, FZ + 0.4), M_RUST, v=10)
-CYL("barrel_band", 0.285, 0.05, (-1.3, 1.5, FZ + 0.55), M_MET_D, v=10)
+WIX, WIY = -1.25, 1.05                                                          # the well riser (rear-left)
+CYL("well_collar", 0.62, 0.4, (WIX, WIY, FZ + 0.2), M_MET_D, v=12)
+CYL("well_rim", 0.66, 0.06, (WIX, WIY, FZ + 0.4), M_MET, v=12)
+LIQ_CYL("well_liquid", 0.5, 0.02, (WIX, WIY, FZ + 0.3), "z", 16)
+for i in range(5):                                                               # grating over the glowing surface
+    dx = -0.4 + i * 0.2
+    B(f"well_bar{i}", (0.04, 2 * math.sqrt(0.6 ** 2 - dx ** 2), 0.03), (WIX + dx, WIY, FZ + 0.42), M_MET)
+PIPE("well_riser", [(WIX, WIY, FZ + 0.4), (WIX, WIY, 2.45), (WIX, 1.5, 2.68)], 0.13, clamps=0.9)   # feeds the ceiling line
+for z in (0.95, 1.7):
+    LIQ_CYL(f"well_sleeve{z}", 0.16, 0.3, (WIX, WIY, z), "z")
+COL("well_col", (1.3, 1.3, 0.45), (WIX, WIY, FZ + 0.225))
+CRYSTALS("well_cr", WIX, WIY, FZ + 0.4, 5, 0.5, 11, 0.8)
+POOL("spill_in", (WIX, WIY, FZ + 0.03), 2.0, 2.0)
+DECAL("crust_in", (WIX, WIY, FZ + 0.02), 2.2, 2.2, "+z", D_CRUST, up=(0, 1, 0))
+CYL("barrel", 0.27, 0.8, (-0.45, 1.5, FZ + 0.4), M_RUST, v=10)                  # amber drum
+CYL("barrel_band", 0.285, 0.05, (-0.45, 1.5, FZ + 0.55), M_MET_D, v=10)
+for z in (1.0, 1.9):
+    LIQ_CYL(f"int_sleeve{z}", 0.095, 0.26, (0.1, CY - 0.15, z), "z")
 # key/dosimeter pedestal
 CYL("pedestal", 0.32, 0.95, (0, 0.5, FZ + 0.475), M_MET_D, v=10)
 CYL("pedestal_top", 0.38, 0.08, (0, 0.5, FZ + 0.95), M_MET, v=10)
@@ -273,12 +356,19 @@ DECAL("stain_wl", (-CX + 0.06, 1.5, 1.2), 0.9, 0.9, "+x", D_STAIN)
 DECAL("stain_wb", (-1.9, CY - 0.06, 0.9), 0.8, 0.8, "-y", D_STAIN)
 DECAL("drip_vent", (-0.9, CY - 0.06, 0.95), 1.3, 1.2, "-y", D_STREAK)
 DECAL("notes", (-CX + 0.106, -0.6, 2.05), 1.25, 0.62, "+x", D_NOTES)
+DECAL("dust_f1", (-0.3, -0.9, FZ + 0.011), 2.2, 2.2, "+z", D_DUST, up=(0, 1, 0))
+DECAL("dust_f2", (1.5, 0.9, FZ + 0.012), 1.5, 1.5, "+z", D_DUST, up=(0, 1, 0))
+DECAL("papers_f", (1.0, -0.5, FZ + 0.03), 1.0, 1.0, "+z", D_PAPERS, up=(0, 1, 0))
+DECAL("web_rr", (CX - 0.055, 1.6, 2.6), 0.6, 0.6, "-x", D_WEB)
+DECAL("web_fl", (-CX + 0.055, -1.6, 2.6), 0.6, 0.6, "+x", D_WEB)
+DECAL("web_bl", (-1.9, CY - 0.055, 2.6), 0.6, 0.6, "-y", D_WEB)
 DECAL("sign_gen", (CX - 0.058, 0.35, 2.4), 0.42, 0.56, "-x", D_WARN)
 
 # ================================================================ MARKERS
 markers = {"marker_door_center": (0, -2.55, FZ), "marker_spawn_inside": (0, -0.9, FZ), "marker_pickup": (0, 0.5, 1.35),
            "marker_terminal_console": (-1.55, -1.24, 1.5), "marker_terminal_desk": (1.6, -1.36, 1.35),
            "marker_light_ceiling": (0, 0, 2.6), "marker_light_roof": (0, 0, 5.0), "marker_dish": (1.0, 0.4, 5.2),
+           "marker_light_well": (WIX, WIY, FZ + 0.75), "marker_light_wellhead": (WX, WY, 2.3),
            "marker_light_front": (0, -3.95, 3.42), "marker_light_side_r": (4.05, -1.25, 3.1), "marker_light_side_l": (-4.05, 1.2, 3.1)}
 for n, p in markers.items():
     L.empty(n, p)
@@ -292,6 +382,7 @@ dl_obj = L.join(door_l, "door_left")
 dr_obj = L.join(door_r, "door_right")
 L.join(decals, "bunker_decals")
 L.join(screens, "bunker_screens")
+L.join(liquids, "bunker_liquid")
 for o in (shell, col):    # join keeps the first part's origin; move it to the world origin so node transforms are identity
     bpy.context.scene.cursor.location = (0, 0, 0)
     bpy.ops.object.select_all(action="DESELECT")

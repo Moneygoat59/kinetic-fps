@@ -1,6 +1,7 @@
 extends Node
 ## Animates the bunker's CRT screens by swapping / scrolling emission textures (blinking cursor, changing readings,
-## rolling static, beacon blink). Materials come from the model's "bunker_screens" mesh. Runs only while the player is near.
+## rolling static, beacon blink) and the glowing amber liquid (flow along the pipes, pulsing pool).
+## Materials come from the model's "bunker_screens" / "bunker_liquid" meshes. Runs only while the player is near.
 
 const TEX_DIR := "res://models/generated/tex/"
 const SCREENS_NODE := "bunker_screens"
@@ -15,7 +16,13 @@ const STATIC_MAT := "bunker_scr_static"
 const STATIC_SPEED := 0.7
 const STATIC_BASE := 0.6
 const STATIC_FLICKER := 0.5
+const LIQUID_NODE := "bunker_liquid"
+const FLOW_MAT := "bunker_amber_liquid"
+const POOL_MAT := "bunker_amber_pool"
+const FLOW_SPEED := 0.35
 
+var _flow: BaseMaterial3D
+var _pool: BaseMaterial3D
 var _mats: Array[BaseMaterial3D] = []
 var _tex_a: Array[Texture2D] = []
 var _tex_b: Array[Texture2D] = []
@@ -27,6 +34,14 @@ var _static: BaseMaterial3D
 
 func setup(model: Node) -> void:
 	set_process(false)
+	var liquid := model.get_node_or_null(LIQUID_NODE) as MeshInstance3D
+	if liquid and liquid.mesh:
+		for i in liquid.mesh.get_surface_count():
+			var lmat := liquid.mesh.surface_get_material(i) as BaseMaterial3D
+			if lmat and lmat.resource_name == FLOW_MAT:
+				_flow = lmat
+			elif lmat and lmat.resource_name == POOL_MAT:
+				_pool = lmat
 	var mesh_node := model.get_node_or_null(SCREENS_NODE) as MeshInstance3D
 	if mesh_node == null or mesh_node.mesh == null:
 		push_warning("BunkerScreens: '%s' missing from model" % SCREENS_NODE)
@@ -60,6 +75,14 @@ func _process(delta: float) -> void:
 			_timer[i] = 0.0
 			_frame[i] = 1 - _frame[i]
 			_mats[i].emission_texture = _tex_b[i] if _frame[i] == 1 else _tex_a[i]
+	var t := Time.get_ticks_msec() * 0.001
+	if _flow:
+		var flow_offset := _flow.uv1_offset
+		flow_offset.y = fposmod(flow_offset.y - delta * FLOW_SPEED, 1.0)
+		_flow.uv1_offset = flow_offset
+		_flow.emission_energy_multiplier = 1.5 + 0.4 * sin(t * 1.7)
+	if _pool:
+		_pool.emission_energy_multiplier = 1.0 + 0.3 * sin(t * 1.3 + 1.0)
 	if _static:
 		var offset := _static.uv1_offset
 		offset.y = fposmod(offset.y + delta * STATIC_SPEED, 1.0)
