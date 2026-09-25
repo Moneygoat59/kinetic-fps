@@ -26,7 +26,10 @@ static func step_movement(state: int, vel: Vector3, input: PlayerInput, motor: P
 				vel = motor.apply_ground_physics(vel, input.wish_dir, delta)
 				vel = motor.apply_gravity(vel, delta)
 		PlayerState.State.AIR:
-			if input.consume_dash():
+			if input.consume_jump():
+				vel.y = motor.jump_velocity
+				SoundManager.play(AudioBank.JUMP, -1.0, 0.04)
+			elif input.consume_dash():
 				vel = motor.execute_dash(vel, input.wish_dir, fwd_dir)
 				SoundManager.play(AudioBank.DASH, 1.0, 0.05)
 			else:

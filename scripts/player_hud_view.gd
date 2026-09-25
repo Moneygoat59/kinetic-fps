@@ -92,10 +92,21 @@ func set_death_overlay(visible: bool) -> void:
 	if damage_rect:
 		damage_rect.color.a = 0.85 if visible else 0.0
 
-func show_prompt(text: String) -> void:
-	if interact_label:
-		interact_label.text = text
-		interact_label.visible = true
+func show_prompt(text: String, font: Font = null) -> void:
+	if not interact_label: return
+	interact_label.text = text
+	if font:
+		interact_label.add_theme_font_override("font", font)
+		interact_label.add_theme_font_size_override("font_size", 13)
+		interact_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.35))
+		interact_label.add_theme_constant_override("outline_size", 3)
+		interact_label.add_theme_color_override("font_outline_color", Color(0.12, 0.08, 0.04, 0.95))
+	elif interact_label.has_theme_font_override("font"):
+		interact_label.remove_theme_font_override("font")
+		interact_label.remove_theme_font_size_override("font_size")
+		interact_label.remove_theme_color_override("font_color")
+		interact_label.remove_theme_constant_override("outline_size")
+	interact_label.visible = true
 
 func hide_prompt() -> void:
 	if interact_label:

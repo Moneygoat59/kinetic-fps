@@ -127,4 +127,3 @@ A two-stage cooked fragmentation grenade explosive:
 | **Interact / Read Lore** | `E` | Open interactive retro terminals |
 | **Toggle Fullscreen** | `F11` / `Alt+Enter` | Seamlessly switch between windowed and fullscreen |
 | **Toggle Cursor** | `Esc` | Release / capture mouse |
-

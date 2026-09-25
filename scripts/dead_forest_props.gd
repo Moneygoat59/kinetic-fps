@@ -2,6 +2,7 @@ class_name DeadForestProps
 extends Node3D
 
 const AMBER_POOL = preload("res://scripts/amber_pool.gd")
+const SPIKE_FIELD = preload("res://scripts/ancient_spike_field.gd")
 const TREE_POOL: Array[PackedScene] = [
 	preload("res://models/dead_forest/dead_tree_1.glb"), preload("res://models/dead_forest/dead_tree_2.glb"),
 	preload("res://models/dead_forest/dead_tree_3.glb"), preload("res://models/dead_forest/dead_tree_4.glb"),
@@ -35,11 +36,14 @@ func clear_area(center: Vector3, radius: float) -> void:
 			var p_node = chunk.get_node_or_null("Props")
 			if p_node:
 				for child in p_node.get_children():
-					if child is Node3D and child.global_position.distance_to(center) < radius: child.queue_free()
+					if child is Node3D:
+						var m = child.pool_radius if (child is AMBER_POOL and "pool_radius" in child) else 0.0
+						if child.global_position.distance_to(center) < (radius + m): child.queue_free()
 
-func _is_excluded(x: float, z: float) -> bool:
+func _is_excluded(x: float, z: float, margin: float = 0.0) -> bool:
 	for ez in exclusion_zones:
-		if sqrt((x - ez.x) * (x - ez.x) + (z - ez.z) * (z - ez.z)) < ez.r: return true
+		var lim = ez.r + margin
+		if (x - ez.x) * (x - ez.x) + (z - ez.z) * (z - ez.z) < lim * lim: return true
 	return false
 
 func _is_blocked(x: float, z: float, pools: Array[Vector3]) -> bool:
@@ -70,17 +74,21 @@ func _on_chunk_recycled(props_node: Node3D, cx: int, cz: int) -> void:
 
 	var pools: Array[Vector3] = []
 	for p in DeadForestTerrain.get_chunk_pools(cx, cz):
-		if _is_excluded(p.x, p.z): continue
+		if _is_excluded(p.x, p.z, p.r + 2.0): continue
 		var pool = AMBER_POOL.new()
 		pool.build_pool(terrain_ref, p.x, p.z, p.r, p.d, p.seed)
 		props_node.add_child(pool)
-		pools.append(Vector3(p.x, p.z, p.r + 1.2))
+		pools.append(Vector3(p.x, p.z, p.r * 1.75))
 
-	for i in range(14):
+	var is_spike_chunk = SPIKE_FIELD.has_spike_field(cx, cz)
+	var tree_count = 12 if is_spike_chunk else 14
+	for i in range(tree_count):
 		var x = min_x + rng.randf() * 48.0; var z = min_z + rng.randf() * 48.0
 		if (x * x + z * z < 250.0) or _is_blocked(x, z, pools): continue
 		var sc = Vector3.ONE * rng.randf_range(1.15, 2.0)
 		_spawn_prop(TREE_POOL[rng.randi_range(0, TREE_POOL.size() - 1)], props_node, Vector3(x, 0.0, z), sc, rng.randf() * TAU, 0.4 * sc.x, 0.35 * sc.y, true, true, null)
+	if is_spike_chunk:
+		SPIKE_FIELD.spawn_spikes(props_node, terrain_ref, cx, cz, min_x, min_z, pools)
 	for i in range(3):
 		var x = min_x + rng.randf() * 48.0; var z = min_z + rng.randf() * 48.0
 		if _is_blocked(x, z, pools): continue

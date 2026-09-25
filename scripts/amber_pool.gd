@@ -3,6 +3,8 @@ extends Area3D
 
 const SIZZLE_SOUND = preload("res://audio/sci-fi/Audio/slime_000.ogg")
 const BUBBLE_SOUND = preload("res://audio/sci-fi/Audio/slime_001.ogg")
+const TOXICITY_EFFECT = preload("res://scripts/amber_toxicity_effect.gd")
+const FONT_LIB = preload("res://scripts/ui/font_library.gd")
 
 static var sludge_tex: ImageTexture; static var emit_tex: ImageTexture
 
@@ -26,54 +28,57 @@ func build_pool(terrain: Node3D, pos_x: float, pos_z: float, radius: float, dept
 	if not sludge_tex: sludge_tex = _load_tex("res://textures/amber_sludge_pixel.png")
 	if not emit_tex: emit_tex = _load_tex("res://textures/amber_sludge_pixel_emit.png")
 
-	var gy = terrain.get_height(pos_x, pos_z) if terrain else 0.0
-	position = Vector3(pos_x, gy + depth * 0.55, pos_z)
+	var ly = terrain.get_liquid_y(pos_x, pos_z) if (terrain and terrain.has_method("get_liquid_y")) else (terrain.get_height(pos_x, pos_z) if terrain else 0.0)
+	position = Vector3(pos_x, ly, pos_z)
 
 	stain_mat = StandardMaterial3D.new()
 	stain_mat.albedo_texture = sludge_tex; stain_mat.albedo_color = Color(0.42, 0.36, 0.30, 0.90)
 	stain_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	stain_mat.vertex_color_use_as_albedo = true; stain_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	stain_mat.proximity_fade_enabled = true; stain_mat.proximity_fade_distance = 0.35
+	stain_mat.proximity_fade_enabled = true; stain_mat.proximity_fade_distance = 0.25
 	stain_mat.roughness = 0.95; stain_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var stain_mi = MeshInstance3D.new(); stain_mi.mesh = _create_seep_mesh(radius * 1.25, p_seed + 19, true)
-	stain_mi.material_override = stain_mat; stain_mi.position.y = -0.02; add_child(stain_mi)
+	var stain_mi = MeshInstance3D.new(); stain_mi.mesh = _create_seep_mesh(radius * 1.02, p_seed + 19, true)
+	stain_mi.material_override = stain_mat; stain_mi.position.y = -0.015; add_child(stain_mi)
 
 	liquid_mat = StandardMaterial3D.new()
 	liquid_mat.albedo_texture = sludge_tex; liquid_mat.emission_enabled = true; liquid_mat.emission_texture = emit_tex
 	liquid_mat.emission_energy_multiplier = 2.6; liquid_mat.vertex_color_use_as_albedo = true
 	liquid_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	liquid_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	liquid_mat.proximity_fade_enabled = true; liquid_mat.proximity_fade_distance = 0.30
+	liquid_mat.proximity_fade_enabled = true; liquid_mat.proximity_fade_distance = 0.25
 	liquid_mat.roughness = 0.12; liquid_mat.metallic = 0.15
 	liquid_mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED; liquid_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 
-	var mi = MeshInstance3D.new(); mi.mesh = _create_seep_mesh(radius, p_seed, true)
+	var mi = MeshInstance3D.new(); mi.mesh = _create_seep_mesh(radius * 1.02, p_seed, true)
 	mi.material_override = liquid_mat; add_child(mi)
 
 	var vapor_mat = StandardMaterial3D.new()
 	vapor_mat.albedo_texture = sludge_tex; vapor_mat.albedo_color = Color(0.95, 0.65, 0.18, 0.24)
 	vapor_mat.emission_enabled = true; vapor_mat.emission = Color(0.95, 0.55, 0.10); vapor_mat.emission_energy_multiplier = 0.6
 	vapor_mat.vertex_color_use_as_albedo = true; vapor_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	vapor_mat.proximity_fade_enabled = true; vapor_mat.proximity_fade_distance = 0.40
+	vapor_mat.proximity_fade_enabled = true; vapor_mat.proximity_fade_distance = 0.35
 	vapor_mat.cull_mode = BaseMaterial3D.CULL_DISABLED; vapor_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	vapor_mi = MeshInstance3D.new(); vapor_mi.mesh = _create_seep_mesh(radius * 1.15, p_seed + 37, true)
-	vapor_mi.material_override = vapor_mat; vapor_mi.position.y = 0.04; add_child(vapor_mi)
+	vapor_mi = MeshInstance3D.new(); vapor_mi.mesh = _create_seep_mesh(radius * 0.96, p_seed + 37, true)
+	vapor_mi.material_override = vapor_mat; vapor_mi.position.y = 0.03; add_child(vapor_mi)
 
 	pool_light = OmniLight3D.new(); pool_light.position = Vector3(0.0, 0.35, 0.0)
 	pool_light.light_color = Color(1.0, 0.58, 0.10); pool_light.light_energy = 2.0
 	pool_light.omni_range = radius * 2.8; add_child(pool_light)
 
 	var col = CollisionShape3D.new(); var shape = CylinderShape3D.new()
-	shape.radius = radius * 0.75; shape.height = 0.40; col.shape = shape; col.position.y = 0.10; add_child(col)
+	shape.radius = radius * 1.06; shape.height = 0.70; col.shape = shape; col.position.y = 0.05; add_child(col)
 
-	bubble_audio = AudioStreamPlayer3D.new(); bubble_audio.stream = BUBBLE_SOUND
-	bubble_audio.unit_size = 6.0; bubble_audio.max_distance = 22.0; bubble_audio.volume_db = -11.0
-	bubble_audio.finished.connect(_loop_bubbles); add_child(bubble_audio)
-
-	sizzle_audio = AudioStreamPlayer3D.new(); sizzle_audio.stream = SIZZLE_SOUND
-	sizzle_audio.unit_size = 9.0; sizzle_audio.volume_db = 2.5; add_child(sizzle_audio)
-
+	bubble_audio = AudioStreamPlayer3D.new(); bubble_audio.stream = BUBBLE_SOUND; bubble_audio.unit_size = 6.0
+	bubble_audio.max_distance = 22.0; bubble_audio.volume_db = -11.0; bubble_audio.finished.connect(_loop_bubbles); add_child(bubble_audio)
+	sizzle_audio = AudioStreamPlayer3D.new(); sizzle_audio.stream = SIZZLE_SOUND; sizzle_audio.unit_size = 9.0; sizzle_audio.volume_db = 2.5; add_child(sizzle_audio)
 	body_entered.connect(_on_body_entered); body_exited.connect(_on_body_exited)
+
+var drink_cooldown: float = 0.0
+func get_interaction_prompt() -> String: return "Drink with E"
+func get_interaction_font() -> Font: return FONT_LIB.kinetic_font()
+func interact(p: Node) -> void:
+	if drink_cooldown > 0.0: return
+	drink_cooldown = 1.8; TOXICITY_EFFECT.apply_to_player(p)
 
 func _create_seep_mesh(rad: float, p_seed: int, fade_edge: bool) -> ArrayMesh:
 	var st = SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES); var segs = 24
@@ -128,11 +133,16 @@ func _process(delta: float) -> void:
 		vapor_mi.scale = Vector3(br, 1.0, br)
 
 func _physics_process(delta: float) -> void:
+	if drink_cooldown > 0.0: drink_cooldown -= delta
 	if not player_in_pool: return
 	damage_timer -= delta
 	if damage_timer <= 0.0:
 		damage_timer = 0.38
 		if is_instance_valid(player_in_pool):
-			player_in_pool.take_hit(9.0)
-			if sizzle_audio and is_inside_tree():
-				sizzle_audio.pitch_scale = randf_range(0.92, 1.15); sizzle_audio.play()
+			var d2 = player_in_pool.global_position.distance_squared_to(global_position)
+			if d2 <= (pool_radius * 0.82) * (pool_radius * 0.82):
+				player_in_pool.take_hit(9.0)
+				if sizzle_audio and is_inside_tree():
+					sizzle_audio.pitch_scale = randf_range(0.92, 1.15); sizzle_audio.play()
+			elif d2 > (pool_radius * 1.2) * (pool_radius * 1.2):
+				player_in_pool = null

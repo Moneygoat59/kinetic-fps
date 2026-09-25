@@ -4,6 +4,7 @@ extends CharacterBody3D
 const CourseManager = preload("res://scripts/course_manager.gd")
 const MegaLevelManager = preload("res://scripts/megalevel_manager.gd")
 const VineRenderer = preload("res://scripts/vine_renderer.gd")
+const SURVIVAL_UI = preload("res://scripts/ui/survival_ui_system.gd")
 const STEP_L = preload("res://audio/impacts/Audio/footstep_snow_000.ogg")
 const STEP_R = preload("res://audio/impacts/Audio/footstep_snow_001.ogg")
 
@@ -23,8 +24,7 @@ var input_ctrl: PlayerInput; var presenter: PlayerPresenter
 var motor: PlayerMotor = PlayerMotor.new(); var vine: PlayerVine = PlayerVine.new()
 var combat: PlayerCombat = PlayerCombat.new(); var health: PlayerHealth = PlayerHealth.new()
 var hud_view: PlayerHudView; var vine_renderer: VineRenderer; var sound_manager: SoundManager
-var step_timer: float = 0.0
-var step_is_left: bool = false
+var step_timer: float = 0.0; var step_is_left: bool = false
 
 func _ready() -> void:
 	sound_manager = SoundManager.new(); input_ctrl = PlayerInput.new()
@@ -33,8 +33,7 @@ func _ready() -> void:
 	hud_view.setup_ui(hud)
 
 	health.init(100.0, global_position)
-	health.health_changed.connect(func(cur, _m): hud_view.update_health(cur))
-	health.player_died.connect(_on_player_died)
+	health.health_changed.connect(func(cur, _m): hud_view.update_health(cur)); health.player_died.connect(_on_player_died)
 
 	presenter.setup(combat, vine, get_parent(), get_tree(), muzzle_flash, gun_mount, camera, hud_view)
 	combat.setup_visuals(gun_mesh, grenade_mount, grenade_pin, grenade_fuse_light, get_tree())
@@ -42,10 +41,9 @@ func _ready() -> void:
 	combat.weapon_switched.connect(func(_t): SoundManager.play(AudioBank.WEAPON_SWITCH, -2.0))
 
 	PlayerPs1View.apply_ps1_visuals(self, gun_mesh, grenade_mount)
-	input_ctrl.capture_mouse.call_deferred()
-	get_window().focus_entered.connect(func(): input_ctrl.capture_mouse.call_deferred())
+	input_ctrl.capture_mouse.call_deferred(); get_window().focus_entered.connect(func(): input_ctrl.capture_mouse.call_deferred())
 	if CourseManager.instance: CourseManager.instance.register_player(self)
-	if walk_only: enable_walk_mode()
+	SURVIVAL_UI.attach(self, combat, camera, health); if walk_only: enable_walk_mode()
 
 func enable_walk_mode() -> void:
 	walk_only = true; motor.ground_speed = 5.2; motor.jump_velocity = 6.8
@@ -57,8 +55,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if input_ctrl.handle_system_shortcuts(event, hud_view): return
 	if event.is_action_pressed("toggle_mouse"): input_ctrl.toggle_mouse(); return
 	if event is InputEventMouseButton and event.pressed and not input_ctrl.mouse_captured: input_ctrl.capture_mouse()
-	if walk_only:
-		input_ctrl.handle_mouse_input(event, self, head); return
+	if walk_only: input_ctrl.handle_mouse_input(event, self, head); return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.is_action_pressed("equip_grenade") or event.keycode in [KEY_G, KEY_2]:
 			combat.switch_to(PlayerCombat.WeaponType.BLASTER if combat.current_weapon == PlayerCombat.WeaponType.GRENADE else PlayerCombat.WeaponType.GRENADE)
@@ -120,21 +117,24 @@ func _handle_clicks(event: InputEvent) -> void:
 func _check_interaction() -> void:
 	var col = aim_ray.get_collider() if aim_ray and aim_ray.is_colliding() else null
 	if col and col.has_method("interact"):
-		hud_view.show_prompt(col.get_interaction_prompt() if col.has_method("get_interaction_prompt") else "[E] Interact")
-		if Input.is_action_just_pressed("interact"): col.interact(self)
-	else: hud_view.hide_prompt()
+		var dist = camera.global_position.distance_to(aim_ray.get_collision_point())
+		if dist <= 4.2 or (col is AmberPool and global_position.distance_to(col.global_position) <= col.pool_radius + 2.0):
+			var font = col.get_interaction_font() if col.has_method("get_interaction_font") else null
+			hud_view.show_prompt(col.get_interaction_prompt() if col.has_method("get_interaction_prompt") else "[E] Interact", font)
+			if Input.is_action_just_pressed("interact"): col.interact(self)
+			return
+	hud_view.hide_prompt()
 
 func take_hit(damage: float, _normal: Vector3 = Vector3.ZERO, _point: Vector3 = Vector3.ZERO) -> void:
 	if health.is_dead: return
-	hud_view.flash_damage(); presenter.add_recoil(1.8, 6.0)
-	SoundManager.play(AudioBank.HURT, 1.0); SoundManager.play(AudioBank.GLITCH, -3.0)
-	health.take_damage(damage)
+	if hud_view: hud_view.flash_damage()
+	if presenter: presenter.add_recoil(1.8, 6.0)
+	SoundManager.play(AudioBank.HURT, 1.0); SoundManager.play(AudioBank.GLITCH, -3.0); health.take_damage(damage)
 
 func reset_for_respawn() -> void:
 	if vine.is_active: velocity = vine.release(velocity, -camera.global_transform.basis.z, false, motor.jump_velocity, motor.max_fall_speed)
 	combat.reset_grenade(); combat.switch_to(combat.current_weapon); health.reset()
-	current_state = PlayerState.State.GROUND; velocity = Vector3.ZERO
-	presenter.reset_camera(camera)
+	current_state = PlayerState.State.GROUND; velocity = Vector3.ZERO; presenter.reset_camera(camera)
 
 func _on_player_died() -> void:
 	current_state = PlayerState.State.DEAD; SoundManager.play(AudioBank.DEATH, 2.0); hud_view.set_death_overlay(true)
