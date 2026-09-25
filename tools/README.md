@@ -46,3 +46,13 @@ darken like contact shadows. Emissive materials (name prefix `bunker_glow`) are 
 - Blender's "Specular IOR Level" does not survive glTF export; `OutpostBunker._make_matte()` zeroes `metallic_specular` at load.
 - Godot lights an emissive surface's albedo on top of its emission, so glow materials use near-black albedo tints.
 - Unshadowed directional lights shine through walls; only the level's `Moonlight` casts shadows (interior darkness comes from the baked AO + shadowed omni lights).
+
+## Screens, decals, textures (v3)
+`tools/blender/textures.py` also draws every screen and decal (uses the project's own fonts in `fonts/`):
+- **Screens** (`screen_*`): amber terminal, green rad monitor, "NO SIGNAL" static, site map, generator LCD. Emissive quads named `scr_*`,
+  materials `bunker_scr_*`. `scripts/bunker/bunker_screens.gd` flips the `_a/_b` frame pairs on a timer (cursor blink, changing
+  readings, map beacon) and scrolls/flickers the static, only while the player is within 24 m.
+- **Decals** (`decal_*`, alpha-blended quads in the `bunker_decals` node): stencil lettering, radiation signs, dirt streaks, stains,
+  hazard stripe, pinned notes. Offset 1-2 cm from the surface; floor decals use different heights to avoid z-fighting.
+- To change screen text/graphics, edit `screens()` in `textures.py`, rerun it, then `godot --headless --path . --import`.
+- Blender alpha: `material.surface_render_method = "BLENDED"` exports as glTF `alphaMode: BLEND` (see `ps1_lib.decal_material`).

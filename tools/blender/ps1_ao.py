@@ -57,7 +57,7 @@ def subdivide_by_length(obj, max_len=0.5):
 
 
 def bake_ao(obj, occluders=(), samples=28, max_dist=2.6, ground_z=None, skip_prefix="bunker_glow",
-            gain=0.8, floor=0.16, power=1.5, chamfer_boost=1.3, seed=7):
+            gain=0.8, floor=0.16, power=1.5, chamfer_boost=1.3, seed=7, dirt=0.14, dust=1.1):
     """Bake ambient occlusion + edge highlights into a per-corner colour attribute (PS1-style vertex lighting).
     Rays are cast against obj + occluders (+ an optional ground plane at ground_z). Faces whose material name starts with
     skip_prefix (emissive) stay white. Chamfer faces (normal not axis-aligned) are brightened. gain leaves headroom
@@ -115,5 +115,10 @@ def bake_ao(obj, occluders=(), samples=28, max_dist=2.6, ground_z=None, skip_pre
             shade = (floor + (1.0 - floor) * ao ** power) * gain
             if maxc < 0.93:  # chamfer facet: catch light
                 shade *= chamfer_boost
+            if dirt:  # uneven grime: cheap deterministic pseudo-noise over world position
+                q = math.sin(p.x * 3.1 + 1.3) * math.sin(p.y * 2.7 + 0.7) * math.sin(p.z * 3.7 + 2.1)
+                shade *= 1.0 - dirt * (0.5 + 0.5 * q)
+            if dust != 1.0 and n.z > 0.9:  # dust settles on upward-facing surfaces
+                shade *= dust
             shade = min(shade, 1.0)
             col.data[li].color = (shade, shade, shade, 1.0)

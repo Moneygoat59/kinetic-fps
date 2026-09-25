@@ -150,6 +150,61 @@ def tex_material(name, image_path, tint=(1, 1, 1), roughness=1.0, emission=None,
     return m
 
 
+def screen_material(name, image_path, strength=1.0):
+    """Emissive screen: black base, emission colour from a nearest-filtered image (CRT content)."""
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    bsdf = nt.nodes["Principled BSDF"]
+    bsdf.inputs["Base Color"].default_value = (0.01, 0.01, 0.01, 1.0)
+    bsdf.inputs["Roughness"].default_value = 1.0
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = bpy.data.images.load(os.path.abspath(image_path))
+    tex.interpolation = "Closest"
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
+    bsdf.inputs["Emission Strength"].default_value = strength
+    return m
+
+
+def decal_material(name, image_path):
+    """Alpha-blended, nearest-filtered decal material (stencils, stains, signs, notes). Exports as glTF alphaMode BLEND."""
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    bsdf = nt.nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = 1.0
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = bpy.data.images.load(os.path.abspath(image_path))
+    tex.interpolation = "Closest"
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    nt.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
+    m.surface_render_method = "BLENDED"
+    return m
+
+
+def quad(name, center, w, h, facing, mat, up=(0, 0, 1)):
+    """Single quad facing an axis direction ('+x','-x','+y','-y','+z','-z'), UV 0..1 (image top = `up`).
+    Used for screens and decals; the image is upright and unmirrored when viewed from the facing side."""
+    n = Vector({"+x": (1, 0, 0), "-x": (-1, 0, 0), "+y": (0, 1, 0), "-y": (0, -1, 0), "+z": (0, 0, 1), "-z": (0, 0, -1)}[facing])
+    upv = Vector(up)
+    if abs(n.dot(upv)) > 0.99:      # floor/ceiling quads: image top points along +Y unless told otherwise
+        upv = Vector((0, 1, 0))
+    right = (-n).cross(upv).normalized()
+    upv = n.cross(right)            # exact orthonormal frame: right x up = n
+    c = Vector(center)
+    verts = [c - right * w / 2 - upv * h / 2, c + right * w / 2 - upv * h / 2, c + right * w / 2 + upv * h / 2, c - right * w / 2 + upv * h / 2]
+    me = bpy.data.meshes.new(name)
+    me.from_pydata([tuple(v) for v in verts], [], [[0, 1, 2, 3]])
+    me.update()
+    uv = me.uv_layers.new(name="UVMap")
+    for i, p in enumerate(((0, 0), (1, 0), (1, 1), (0, 1))):
+        uv.data[i].uv = p
+    o = bpy.data.objects.new(name, me)
+    bpy.context.collection.objects.link(o)
+    me.materials.append(mat)
+    return o
+
+
 def chamfer_box(name, size, loc, mat=None, c=0.1, rot_deg=(0, 0, 0)):
     o = box(name, size, loc, mat, rot_deg)
     mod = o.modifiers.new("bev", "BEVEL")

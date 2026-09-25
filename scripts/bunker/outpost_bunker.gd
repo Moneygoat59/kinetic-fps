@@ -8,23 +8,17 @@ signal dosimeter_acquired
 
 const DoorScript = preload("res://scripts/bunker/bunker_door.gd")
 const PickupScript = preload("res://scripts/bunker/bunker_pickup.gd")
+const ScreensScript = preload("res://scripts/bunker/bunker_screens.gd")
+const Fx = preload("res://scripts/bunker/bunker_fx.gd")
 const MODEL_PATH := "res://models/generated/outpost73_bunker.glb"
 const DOOR_TRIGGER_DIST := 5.8
+const SCREENS_ACTIVE_DIST := 24.0
 const DOOR_BLOCKER_SIZE := Vector3(1.8, 2.25, 0.3)
-const AMBER := Color(1.0, 0.68, 0.15)
-const GRIME_SIZE := 18.0
-## marker name -> [colour, energy, range, casts_shadow]. The roof light pulses (see _process).
-const LIGHTS := {
-	"marker_light_ceiling": [Color(1.0, 0.68, 0.2), 4.0, 8.0, true],
-	"marker_light_front": [AMBER, 3.8, 7.5, true],
-	"marker_light_side_l": [AMBER, 2.5, 5.0, false],
-	"marker_light_side_r": [AMBER, 2.5, 5.0, false],
-	"marker_light_roof": [AMBER, 4.0, 45.0, false],
-}
 
 var model: Node3D
 var door: Node
 var pickup: Node3D
+var screens: Node
 var _roof_light: OmniLight3D
 
 
@@ -41,43 +35,18 @@ func build_bunker(terrain: Node3D, pos_x: float, pos_z: float) -> void:
 	position = Vector3(pos_x, terrain.get_height(pos_x, pos_z) if terrain else 0.0, pos_z)
 	model = scene.instantiate() as Node3D
 	add_child(model)
-	_make_matte(model)
-	_setup_lights()
+	Fx.make_matte(model)
+	_roof_light = Fx.add_lights(model)
+	Fx.add_grime(self)
 	_setup_door()
 	_setup_pickup()
-	_setup_grime()
-
-
-## glTF cannot carry Blender's "specular = 0", so strip glints here (PS1 matte look). Runs once at build.
-func _make_matte(node: Node) -> void:
-	if node is MeshInstance3D and node.mesh:
-		for i in node.mesh.get_surface_count():
-			var mat := node.mesh.surface_get_material(i) as BaseMaterial3D
-			if mat:
-				mat.metallic_specular = 0.0
-	for child in node.get_children():
-		_make_matte(child)
+	screens = ScreensScript.new()
+	add_child(screens)
+	screens.setup(model)
 
 
 func _marker(marker_name: String) -> Node3D:
 	return model.get_node_or_null(marker_name) as Node3D
-
-
-func _setup_lights() -> void:
-	for marker_name in LIGHTS:
-		var m := _marker(marker_name)
-		if m == null:
-			continue
-		var spec: Array = LIGHTS[marker_name]
-		var light := OmniLight3D.new()
-		light.light_color = spec[0]
-		light.light_energy = spec[1]
-		light.omni_range = spec[2]
-		light.shadow_enabled = spec[3]
-		light.shadow_bias = 0.05
-		m.add_child(light)
-		if marker_name == "marker_light_roof":
-			_roof_light = light
 
 
 func _setup_door() -> void:
@@ -115,25 +84,6 @@ func _setup_pickup() -> void:
 	pickup.claimed.connect(dosimeter_acquired.emit)
 
 
-## Soft dark contact-shadow decal projected onto the terrain (and the wall bases) around the foundation.
-func _setup_grime() -> void:
-	var grad := Gradient.new()
-	grad.offsets = PackedFloat32Array([0.0, 0.42, 1.0])
-	grad.colors = PackedColorArray([Color(0, 0, 0, 0.9), Color(0, 0, 0, 0.7), Color(0, 0, 0, 0.0)])
-	var tex := GradientTexture2D.new()
-	tex.gradient = grad
-	tex.fill = GradientTexture2D.FILL_RADIAL
-	tex.fill_from = Vector2(0.5, 0.5)
-	tex.fill_to = Vector2(1.0, 0.5)
-	tex.width = 64
-	tex.height = 64
-	var decal := Decal.new()
-	decal.texture_albedo = tex
-	decal.size = Vector3(GRIME_SIZE, 1.6, GRIME_SIZE)
-	decal.position = Vector3(0.0, 0.3, 0.0)
-	add_child(decal)
-
-
 func _process(_delta: float) -> void:
 	if _roof_light:
 		_roof_light.light_energy = lerpf(2.5, 6.5, (sin(Time.get_ticks_msec() * 0.008) + 1.0) * 0.5)
@@ -143,6 +93,9 @@ func _process(_delta: float) -> void:
 func check_interaction(player_pos: Vector3, force: bool = false) -> bool:
 	if model == null:
 		return false
+	var dist := global_position.distance_to(player_pos)
 	if door:
-		door.request_open(global_position.distance_to(player_pos) < DOOR_TRIGGER_DIST)
+		door.request_open(dist < DOOR_TRIGGER_DIST)
+	if screens:
+		screens.set_active(dist < SCREENS_ACTIVE_DIST)
 	return pickup != null and pickup.update_proximity(player_pos, force)
