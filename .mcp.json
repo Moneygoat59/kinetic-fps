@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "godot": {
+      "command": "node",
+      "args": ["C:/Users/Isaac/tools/godot-mcp/build/index.js"],
+      "env": {
+        "GODOT_PATH": "C:/Users/Isaac/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe/godot_console.exe"
+      }
+    }
+  }
+}
