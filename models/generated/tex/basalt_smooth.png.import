@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dbtfvhe073p0f"
-path="res://.godot/imported/concrete.png-312778019a0c6ae929df506c775f57a8.ctex"
+uid="uid://v6igpvp6csvs"
+path="res://.godot/imported/basalt_smooth.png-b1cf6109c35db9c3da21074618dfc835.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://models/generated/tex/concrete.png"
-dest_files=["res://.godot/imported/concrete.png-312778019a0c6ae929df506c775f57a8.ctex"]
+source_file="res://models/generated/tex/basalt_smooth.png"
+dest_files=["res://.godot/imported/basalt_smooth.png-b1cf6109c35db9c3da21074618dfc835.ctex"]
 
 [params]
 

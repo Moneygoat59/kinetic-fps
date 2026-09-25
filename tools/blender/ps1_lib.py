@@ -161,10 +161,14 @@ def chamfer_box(name, size, loc, mat=None, c=0.1, rot_deg=(0, 0, 0)):
     return o
 
 
-def prism(name, pts_xz, depth, loc=(0, 0, 0), mat=None):
-    """Extrude a polygon drawn in the XZ plane (list of (x,z)) along +Y by `depth`. loc offsets the whole prism."""
+def prism(name, pts_xz, depth, loc=(0, 0, 0), mat=None, plane="xz"):
+    """Extrude a polygon drawn in the XZ plane (list of (x,z)) along +Y by `depth`. loc offsets the whole prism.
+    plane="yz": points are (y,z) and the extrusion runs along +X (side-profile solids such as wedge consoles)."""
     n = len(pts_xz)
-    verts = [(x, 0.0, z) for x, z in pts_xz] + [(x, depth, z) for x, z in pts_xz]
+    if plane == "yz":
+        verts = [(0.0, y, z) for y, z in pts_xz] + [(depth, y, z) for y, z in pts_xz]
+    else:
+        verts = [(x, 0.0, z) for x, z in pts_xz] + [(x, depth, z) for x, z in pts_xz]
     faces = [list(range(n))[::-1], list(range(n, 2 * n))]
     for i in range(n):
         j = (i + 1) % n
@@ -185,9 +189,44 @@ def prism(name, pts_xz, depth, loc=(0, 0, 0), mat=None):
     return o
 
 
-def world_uv(obj, tile=2.0):
-    """Box-project UVs from world coordinates so textures keep a constant texel density on every face (tile = metres per repeat)."""
+def arch_pts(w, top, chamfer, base=0.25):
+    """Open arch outline (XZ): up the left side, chamfered top corners, down the right side."""
+    return [(-w, base), (-w, top - chamfer), (-w + chamfer, top), (w - chamfer, top), (w, top - chamfer), (w, base)]
+
+
+def arch_ring(name, outer, inner, depth, loc=(0, 0, 0), mat=None):
+    """Solid band between two open polylines (same point count, XZ plane), extruded along +Y by `depth`
+    (door frames). Local y=0 is the face that should point outward."""
+    n = len(outer)
+    verts = ([(x, 0.0, z) for x, z in outer] + [(x, 0.0, z) for x, z in inner]
+             + [(x, depth, z) for x, z in outer] + [(x, depth, z) for x, z in inner])
+    o0, i0, o1, i1 = 0, n, 2 * n, 3 * n
+    faces = []
+    for k in range(n - 1):
+        faces += [[o0 + k, o0 + k + 1, i0 + k + 1, i0 + k], [o1 + k, i1 + k, i1 + k + 1, o1 + k + 1],
+                  [o0 + k, o1 + k, o1 + k + 1, o0 + k + 1], [i0 + k, i0 + k + 1, i1 + k + 1, i1 + k]]
+    faces += [[o0, i0, i1, o1], [o0 + n - 1, o1 + n - 1, i1 + n - 1, i0 + n - 1]]
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(verts, [], faces)
+    me.update()
+    o = bpy.data.objects.new(name, me)
+    bpy.context.collection.objects.link(o)
+    o.location = loc
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(me)
+    bm.free()
+    if mat:
+        me.materials.append(mat)
+    return o
+
+
+def world_uv(obj, tile=2.0, tile_by_mat=None):
+    """Box-project UVs from world coordinates so textures keep a constant texel density on every face.
+    tile = metres per texture repeat; tile_by_mat maps material name -> tile for per-material density."""
     me = obj.data
+    tile_by_mat = tile_by_mat or {}
     bm = bmesh.new()
     bm.from_mesh(me)
     uv = bm.loops.layers.uv.verify()
@@ -195,10 +234,12 @@ def world_uv(obj, tile=2.0):
     for f in bm.faces:
         n = (mw.to_3x3() @ f.normal)
         ax = max(range(3), key=lambda i: abs(n[i]))
+        mat = me.materials[f.material_index] if f.material_index < len(me.materials) else None
+        t = tile_by_mat.get(mat.name if mat else "", tile)
         for l in f.loops:
             p = mw @ l.vert.co
             u, v = [(p.y, p.z), (p.x, p.z), (p.x, p.y)][ax]
-            l[uv].uv = (u / tile, v / tile)
+            l[uv].uv = (u / t, v / t)
     bm.to_mesh(me)
     bm.free()
 
@@ -216,7 +257,8 @@ def export_all(path):
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", use_selection=True, export_apply=True,
-                              export_yup=True, export_materials="EXPORT", export_cameras=False, export_lights=False)
+                              export_yup=True, export_materials="EXPORT", export_cameras=False, export_lights=False,
+                              export_vertex_color="ACTIVE", export_active_vertex_color_when_no_material=True)
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     print(f"EXPORT ok {path}  objects={len(bpy.context.scene.objects)} tris={tri_count(meshes)}")
 

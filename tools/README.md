@@ -38,3 +38,11 @@ Output goes to `shots/` (git-ignored). `-Exec path.gd` runs a script with `func 
 | `tools\exec\*.gd` | Hook scripts for `capture.ps1 -Exec` (e.g. `build_small_bunker.gd` builds the procedural bunker before the shot). |
 | `tools\blender\textures.py` | Regenerates the procedural PS1 textures into `models/generated/tex/`. |
 | `tools\blender\props\outpost73_bunker.py` | Outpost 73 bunker generator (walkable shell, doors, markers). Naming: `*-colonly` = collision-only trimesh on import, `marker_*` = gameplay anchors. |
+
+## Lighting bake (PS1 vertex lighting)
+`tools/blender/ps1_ao.py` bakes ambient occlusion + chamfer-edge highlights into per-corner vertex colours (glTF `COLOR_0`; Godot
+multiplies them into albedo). `subdivide_by_length` gives big flat faces enough vertices for the gradient; `ground_z=0` makes wall bases
+darken like contact shadows. Emissive materials (name prefix `bunker_glow`) are skipped. Gotchas found the hard way:
+- Blender's "Specular IOR Level" does not survive glTF export; `OutpostBunker._make_matte()` zeroes `metallic_specular` at load.
+- Godot lights an emissive surface's albedo on top of its emission, so glow materials use near-black albedo tints.
+- Unshadowed directional lights shine through walls; only the level's `Moonlight` casts shadows (interior darkness comes from the baked AO + shadowed omni lights).

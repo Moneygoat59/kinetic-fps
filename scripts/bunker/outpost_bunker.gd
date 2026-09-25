@@ -12,13 +12,14 @@ const MODEL_PATH := "res://models/generated/outpost73_bunker.glb"
 const DOOR_TRIGGER_DIST := 5.8
 const DOOR_BLOCKER_SIZE := Vector3(1.8, 2.25, 0.3)
 const AMBER := Color(1.0, 0.68, 0.15)
-## marker name -> [colour, energy, range]. The roof light pulses (see _process).
+const GRIME_SIZE := 18.0
+## marker name -> [colour, energy, range, casts_shadow]. The roof light pulses (see _process).
 const LIGHTS := {
-	"marker_light_ceiling": [Color(1.0, 0.72, 0.2), 2.6, 8.0],
-	"marker_light_front": [AMBER, 3.8, 7.5],
-	"marker_light_side_l": [AMBER, 2.5, 5.0],
-	"marker_light_side_r": [AMBER, 2.5, 5.0],
-	"marker_light_roof": [AMBER, 4.0, 45.0],
+	"marker_light_ceiling": [Color(1.0, 0.68, 0.2), 4.0, 8.0, true],
+	"marker_light_front": [AMBER, 3.8, 7.5, true],
+	"marker_light_side_l": [AMBER, 2.5, 5.0, false],
+	"marker_light_side_r": [AMBER, 2.5, 5.0, false],
+	"marker_light_roof": [AMBER, 4.0, 45.0, false],
 }
 
 var model: Node3D
@@ -40,9 +41,22 @@ func build_bunker(terrain: Node3D, pos_x: float, pos_z: float) -> void:
 	position = Vector3(pos_x, terrain.get_height(pos_x, pos_z) if terrain else 0.0, pos_z)
 	model = scene.instantiate() as Node3D
 	add_child(model)
+	_make_matte(model)
 	_setup_lights()
 	_setup_door()
 	_setup_pickup()
+	_setup_grime()
+
+
+## glTF cannot carry Blender's "specular = 0", so strip glints here (PS1 matte look). Runs once at build.
+func _make_matte(node: Node) -> void:
+	if node is MeshInstance3D and node.mesh:
+		for i in node.mesh.get_surface_count():
+			var mat := node.mesh.surface_get_material(i) as BaseMaterial3D
+			if mat:
+				mat.metallic_specular = 0.0
+	for child in node.get_children():
+		_make_matte(child)
 
 
 func _marker(marker_name: String) -> Node3D:
@@ -59,6 +73,8 @@ func _setup_lights() -> void:
 		light.light_color = spec[0]
 		light.light_energy = spec[1]
 		light.omni_range = spec[2]
+		light.shadow_enabled = spec[3]
+		light.shadow_bias = 0.05
 		m.add_child(light)
 		if marker_name == "marker_light_roof":
 			_roof_light = light
@@ -97,6 +113,25 @@ func _setup_pickup() -> void:
 	anchor.add_child(pickup)
 	pickup.setup()
 	pickup.claimed.connect(dosimeter_acquired.emit)
+
+
+## Soft dark contact-shadow decal projected onto the terrain (and the wall bases) around the foundation.
+func _setup_grime() -> void:
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.42, 1.0])
+	grad.colors = PackedColorArray([Color(0, 0, 0, 0.9), Color(0, 0, 0, 0.7), Color(0, 0, 0, 0.0)])
+	var tex := GradientTexture2D.new()
+	tex.gradient = grad
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	tex.width = 64
+	tex.height = 64
+	var decal := Decal.new()
+	decal.texture_albedo = tex
+	decal.size = Vector3(GRIME_SIZE, 1.6, GRIME_SIZE)
+	decal.position = Vector3(0.0, 0.3, 0.0)
+	add_child(decal)
 
 
 func _process(_delta: float) -> void:
