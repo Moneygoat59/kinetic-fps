@@ -20,3 +20,5 @@ Thumbs.db
 
 # Tooling output
 shots/
+__pycache__/
+*.pyc
