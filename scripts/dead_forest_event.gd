@@ -1,7 +1,7 @@
 class_name DeadForestEvent
 extends Node3D
 
-const BUNKER_SCRIPT = preload("res://scripts/small_bunker.gd")
+const BUNKER_SCRIPT = preload("res://scripts/bunker/outpost_bunker.gd")
 const PYLON_SCRIPT = preload("res://scripts/nuclear_pylon.gd")
 const DOSIMETER_SCRIPT = preload("res://scripts/radiation_dosimeter.gd")
 const CAMPSITE_SCRIPT = preload("res://scripts/abandoned_campsite.gd")

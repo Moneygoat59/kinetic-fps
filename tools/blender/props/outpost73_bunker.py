@@ -4,7 +4,9 @@ Out:  models/generated/outpost73_bunker.glb
 Blender axes (Z up); front (door) faces -Y, exported to glTF +Z. 1 unit = 1 m.
 Nodes: bunker_shell (visual), shell-colonly (Godot builds trimesh collision), door_left / door_right (slide sideways),
        marker_* empties (gameplay anchors).
-Footprint 7.4 x 6.8 m, height 4.5 m (+ roof dish). Interior 4.4 x 3.8 m, floor z=0.25, ceiling z=2.9.
+Footprint 7.4 x 6.8 m, height 4.5 m (+ roof dish), foundation skirt to z=-1. Interior 4.4 x 3.8 m, floor z=0.25, ceiling z=2.9.
+Gameplay contract (scripts/bunker/outpost_bunker.gd): door_left/door_right slide on local X (1.0 m); door blocker box 1.8x2.25x0.3 at marker_door_center + (0,1.125,0);
+marker_pickup = item hover point; marker_light_* get omni lights.
 """
 import math
 import os
@@ -65,7 +67,7 @@ def slab(name, x0, x1, y0, y1, z0, z1, mat, col=True):
 
 
 # ================================================================ SHELL (walls, floor, ceiling)
-slab("floor", -HX, HX, -HY, HY, 0, FZ, M_FLOOR)
+slab("floor", -HX, HX, -HY, HY, -1.0, FZ, M_FLOOR)   # extends 1 m below ground so it never floats on slopes
 B("floor_top", (2 * CX, 2 * CY, 0.04), (0, 0, FZ - 0.01), M_FLOOR)
 slab("back_wall", -HX, HX, CY, HY, FZ, H, M_CON)
 slab("wall_l", -HX, -CX, -CY, CY, FZ, H, M_CON)
@@ -86,16 +88,17 @@ for s in (-1, 1):
     parts.append(L.prism(f"reveal_ch{s}", [(s * 1.15, 2.45), (s * 1.15, 2.75), (s * 0.85, 2.75)], 0.5, (0, -HY, 0), M_CON_D))
     B(f"trim_post{s}", (0.32, 0.14, 2.9), (s * 1.31, -HY - 0.07, FZ + 1.45), M_CON_D, 0.03)
 B("trim_top", (2.9, 0.14, 0.3), (0, -HY - 0.07, 3.0), M_CON_D, 0.03)
-B("door_step", (2.3, 0.9, FZ), (0, -HY + 0.05, FZ / 2), M_CON_D)
-COL("door_step_c", (2.3, 0.9, FZ), (0, -HY + 0.05, FZ / 2))
+# walkable entrance ramp (CharacterBody3D cannot climb a 0.25 m vertical step): 0.25 m rise over 1.3 m (~11 deg)
+parts.append(L.ramp("door_ramp", -1.15, 1.15, -HY - 1.3, -HY, -1.0, 0.0, FZ, M_CON_D))
+cols.append(L.ramp("door_ramp_c", -1.15, 1.15, -HY - 1.3, -HY, -1.0, 0.0, FZ, None))
 B("window_housing", (1.9, 0.1, 0.36), (0, -HY - 0.05, 3.42), M_MET_D)
 B("window_glow", (1.7, 0.06, 0.2), (0, -HY - 0.11, 3.42), M_AMBER)
 
 # ================================================================ EXTERIOR MASSING
-B("plinth_back", (8.2, 0.5, 0.5), (0, 3.55, 0.25), M_CON_D, 0.1)
+B("plinth_back", (8.2, 0.5, 1.5), (0, 3.55, -0.25), M_CON_D, 0.1)
 for sx in (-1, 1):                                      # plinth strips (sides full length, front split at the door)
-    B(f"plinth_side{sx}", (0.5, 2 * 3.8, 0.5), (sx * 3.85, 0, 0.25), M_CON_D, 0.1)
-    B(f"plinth_front{sx}", (2.9, 0.5, 0.5), (sx * 2.65, -3.55, 0.25), M_CON_D, 0.1)
+    B(f"plinth_side{sx}", (0.5, 2 * 3.8, 1.5), (sx * 3.85, 0, -0.25), M_CON_D, 0.1)
+    B(f"plinth_front{sx}", (2.9, 0.5, 1.5), (sx * 2.65, -3.55, -0.25), M_CON_D, 0.1)
 for sx in (-1, 1):
     for sy in (-1, 1):
         B(f"pilaster{sx}{sy}", (1.65, 1.65, 3.5), (sx * 3.025, sy * 2.725, 2.25), M_CON, 0.24)
@@ -204,9 +207,10 @@ CYL("pedestal", 0.32, 0.95, (0, 0.5, FZ + 0.475), M_MET_D, v=10)
 CYL("pedestal_top", 0.38, 0.08, (0, 0.5, FZ + 0.95), M_MET, v=10)
 
 # ================================================================ MARKERS
-markers = {"marker_door_center": (0, -2.55, FZ), "marker_spawn_inside": (0, -0.9, FZ), "marker_pickup": (0, 0.5, 1.5),
+markers = {"marker_door_center": (0, -2.55, FZ), "marker_spawn_inside": (0, -0.9, FZ), "marker_pickup": (0, 0.5, 1.35),
            "marker_terminal_console": (-1.6, -1.35, 1.5), "marker_terminal_desk": (1.6, -1.35, 1.35),
-           "marker_light_ceiling": (0, 0, 2.6), "marker_light_roof": (0, 0, 4.7), "marker_dish": (1.0, 0.55, 5.55)}
+           "marker_light_ceiling": (0, 0, 2.6), "marker_light_roof": (0, 0, 4.7), "marker_dish": (1.0, 0.55, 5.55),
+           "marker_light_front": (0, -3.75, 3.42), "marker_light_side_r": (3.85, -1.25, 3.1), "marker_light_side_l": (-3.85, 1.2, 3.1)}
 for n, p in markers.items():
     L.empty(n, p)
 

@@ -219,3 +219,23 @@ def export_all(path):
                               export_yup=True, export_materials="EXPORT", export_cameras=False, export_lights=False)
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     print(f"EXPORT ok {path}  objects={len(bpy.context.scene.objects)} tris={tri_count(meshes)}")
+
+
+def ramp(name, x0, x1, y0, y1, z_bottom, z_at_y0, z_at_y1, mat=None):
+    """Wedge solid: x0..x1 wide, y0..y1 long, flat bottom at z_bottom, top surface sloping from z_at_y0 to z_at_y1 (walkable ramp)."""
+    v = [(x0, y0, z_bottom), (x0, y1, z_bottom), (x0, y1, z_at_y1), (x0, y0, z_at_y0),
+         (x1, y0, z_bottom), (x1, y1, z_bottom), (x1, y1, z_at_y1), (x1, y0, z_at_y0)]
+    f = [[0, 1, 2, 3], [7, 6, 5, 4], [0, 4, 5, 1], [3, 2, 6, 7], [0, 3, 7, 4], [1, 5, 6, 2]]
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(v, [], f)
+    me.update()
+    o = bpy.data.objects.new(name, me)
+    bpy.context.collection.objects.link(o)
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(me)
+    bm.free()
+    if mat:
+        me.materials.append(mat)
+    return o
