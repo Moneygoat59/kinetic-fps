@@ -10,6 +10,7 @@ var noise: FastNoiseLite; var micro_noise: FastNoiseLite; var terrain_mat: Stand
 var chunks: Array[Node3D] = []; var chunk_coords: Array[Vector2i] = []
 var last_player_chunk: Vector2i = Vector2i(999999, 999999)
 var flat_zones: Array[Dictionary] = []; var hole_zones: Array[Dictionary] = []
+var _dirty := {}   # chunk index -> true: rebuild pending from a new flat zone / hole (_flush_dirty)
 
 func _ready() -> void:
 	_init_noise(); _init_material(); _init_chunk_pool()
@@ -32,24 +33,61 @@ func _init_chunk_pool() -> void:
 		body.add_child(mi); body.add_child(col); body.add_child(props); add_child(body)
 		chunks.append(body); chunk_coords.append(Vector2i(999999, 999999))
 
+## Marks the chunks a new zone touches; they rebuild once at the end of the frame (a building adds several zones at once).
 func _refresh_overlapping(x: float, z: float, radius: float) -> void:
 	for i in range(chunks.size()):
 		var coord = chunk_coords[i]
 		if coord.x != 999999:
 			var cx = coord.x * CHUNK_SIZE; var cz = coord.y * CHUNK_SIZE
 			if sqrt((x - cx) * (x - cx) + (z - cz) * (z - cz)) < radius + CHUNK_SIZE:
-				_rebuild_chunk(chunks[i], coord.x, coord.y)
+				if _dirty.is_empty(): _flush_dirty.call_deferred()
+				_dirty[i] = true
+
+func _flush_dirty() -> void:
+	for i in _dirty:
+		if chunk_coords[i].x != 999999: _rebuild_chunk(chunks[i], chunk_coords[i].x, chunk_coords[i].y)
+	_dirty.clear()
 
 func add_flat_zone(x: float, z: float, radius: float, target_y: float, flat_r: float = -1.0) -> void:
 	var fr = flat_r if flat_r > 0.0 else radius * 0.55
 	flat_zones.append({"x": x, "z": z, "r": radius, "flat_r": fr, "y": target_y})
 	_refresh_overlapping(x, z, radius)
 
-func add_hole(x: float, z: float, radius: float) -> void:
-	hole_zones.append({"x": x, "z": z, "r_sq": radius * radius})
+## Cuts the terrain away inside `radius` (a building's own floor replaces it). Edge vertices snap onto the circle and drop by
+## `sink`, so the dirt tucks under the building's rim instead of leaving a jagged, see-through gap. `depth` = how far below
+## the ground the hole's walkable space goes (the fall reset waits that long, see get_kill_y).
+func add_hole(x: float, z: float, radius: float, sink: float = 0.0, depth: float = 0.0) -> void:
+	hole_zones.append({"x": x, "z": z, "r": radius, "r_sq": radius * radius, "sink": sink, "floor": get_height(x, z) - depth})
 	_refresh_overlapping(x, z, radius)
 
+## Height below which a falling player is reset: `fallback`, or deeper inside a hole that goes further down.
+func get_kill_y(x: float, z: float, fallback: float) -> float:
+	var y = fallback
+	for hz in hole_zones:
+		if (x - hz.x) * (x - hz.x) + (z - hz.z) * (z - hz.z) < hz.r_sq: y = minf(y, hz.floor - 10.0)
+	return y
+
+## Terrain vertex at (x, z): inside a hole it moves out onto the hole's edge and sinks under the rim.
+func _vertex(x: float, z: float) -> Vector3:
+	for hz in hole_zones:
+		var dx = x - hz.x; var dz = z - hz.z; var d_sq = dx * dx + dz * dz
+		if d_sq < hz.r_sq:
+			var k = hz.r / maxf(sqrt(d_sq), 0.001); var ex = hz.x + dx * k; var ez = hz.z + dz * k
+			return Vector3(ex, get_height(ex, ez) - hz.sink, ez)
+	return Vector3(x, get_height(x, z), z)
+
+func _in_hole(x: float, z: float) -> bool:
+	for hz in hole_zones:
+		if (x - hz.x) * (x - hz.x) + (z - hz.z) * (z - hz.z) < hz.r_sq: return true
+	return false
+
+static var _pool_cache := {}   # Vector2i -> pools; get_height asks for every terrain vertex, the pools never change
+const POOL_CACHE_MAX := 4096
+
 static func get_chunk_pools(cx: int, cz: int) -> Array[Dictionary]:
+	var key := Vector2i(cx, cz)
+	if _pool_cache.has(key): return _pool_cache[key]
+	if _pool_cache.size() >= POOL_CACHE_MAX: _pool_cache.clear()
 	var pools: Array[Dictionary] = []; var rng = RandomNumberGenerator.new()
 	rng.seed = (cx * 73856093) ^ (cz * 19349663) ^ 442211
 	var min_x = cx * CHUNK_SIZE - CHUNK_SIZE * 0.5; var min_z = cz * CHUNK_SIZE - CHUNK_SIZE * 0.5
@@ -57,6 +95,7 @@ static func get_chunk_pools(cx: int, cz: int) -> Array[Dictionary]:
 		var px = min_x + rng.randf_range(9.0, 39.0); var pz = min_z + rng.randf_range(9.0, 39.0)
 		if px * px + pz * pz < 400.0: continue
 		pools.append({"x": px, "z": pz, "r": rng.randf_range(3.2, 4.6), "d": rng.randf_range(0.60, 0.80), "seed": rng.randi()})
+	_pool_cache[key] = pools
 	return pools
 
 func get_undisturbed_height(x: float, z: float) -> float:
@@ -108,13 +147,9 @@ func _rebuild_chunk(chunk_node: Node3D, cx: int, cz: int) -> void:
 		for xi in range(quads):
 			var x0 = origin_x + xi * STEP; var x1 = x0 + STEP
 			var z0 = origin_z + zi * STEP; var z1 = z0 + STEP
-			var mx = x0 + STEP * 0.5; var mz = z0 + STEP * 0.5
-			var in_hole = false
-			for hz in hole_zones:
-				if (mx - hz.x) * (mx - hz.x) + (mz - hz.z) * (mz - hz.z) < hz.r_sq: in_hole = true; break
-			if in_hole: continue
-			var p00 = Vector3(x0, get_height(x0, z0), z0); var p10 = Vector3(x1, get_height(x1, z0), z0)
-			var p01 = Vector3(x0, get_height(x0, z1), z1); var p11 = Vector3(x1, get_height(x1, z1), z1)
+			if _in_hole(x0, z0) and _in_hole(x1, z0) and _in_hole(x0, z1) and _in_hole(x1, z1): continue
+			var p00 = _vertex(x0, z0); var p10 = _vertex(x1, z0)
+			var p01 = _vertex(x0, z1); var p11 = _vertex(x1, z1)
 			st.add_vertex(p00); st.add_vertex(p10); st.add_vertex(p01)
 			st.add_vertex(p10); st.add_vertex(p11); st.add_vertex(p01); has_verts = true
 	var mi = chunk_node.get_node("Mesh") as MeshInstance3D; var col = chunk_node.get_node("Collision") as CollisionShape3D

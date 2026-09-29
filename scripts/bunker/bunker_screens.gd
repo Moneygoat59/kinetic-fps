@@ -10,6 +10,8 @@ const FLIPS := {
 	"bunker_scr_term": ["screen_term_a", "screen_term_b", 0.5],
 	"bunker_scr_scan": ["screen_scan_a", "screen_scan_b", 0.9],
 	"bunker_scr_map": ["screen_map_a", "screen_map_b", 0.7],
+	"bunker_scr_map02": ["screen_map02_a", "screen_map02_b", 0.7],   # Outposts 02 / 03 (their own well blinks)
+	"bunker_scr_map03": ["screen_map03_a", "screen_map03_b", 0.7],
 	"bunker_scr_gen": ["screen_gen_a", "screen_gen_b", 1.7],
 }
 const STATIC_MAT := "bunker_scr_static"

@@ -1,94 +1,54 @@
 class_name DevHud
 extends CanvasLayer
+## The dev layer (DevManager): a quiet corner strip with what dev tools are on, short toasts, and the DevMenu panel.
 
-signal fog_toggled()
-signal flycam_toggled()
-signal teleport_requested(poi_id: int)
+const DevMenuScript = preload("res://scripts/dev/dev_menu.gd")
 
-var top_bar: Label
-var toast_label: Label
-var help_panel: PanelContainer
-var toast_tween: Tween
+var menu: DevMenu
+var _strip: Label
+var _toast: Label
+var _toast_tween: Tween
+
 
 func _ready() -> void:
 	layer = 50
-	_build_ui()
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	_strip = _corner_label(Control.PRESET_TOP_RIGHT, Color(0.86, 0.84, 0.78, 0.45), 8)
+	_strip.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_strip.offset_left = -300.0; _strip.offset_right = -6.0; _strip.offset_top = 4.0
+	_toast = _corner_label(Control.PRESET_CENTER_TOP, Color(0.96, 0.72, 0.3), 10)
+	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_toast.offset_left = -250.0; _toast.offset_right = 250.0; _toast.offset_top = 30.0
+	_toast.modulate.a = 0.0
+	menu = DevMenuScript.new()
+	add_child(menu)
+	update_strip(false, false, 0.0)
 
-func _build_ui() -> void:
-	top_bar = Label.new()
-	top_bar.name = "DevTopBar"
-	top_bar.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	top_bar.offset_left = -460.0; top_bar.offset_top = 8.0; top_bar.offset_right = -10.0; top_bar.offset_bottom = 26.0
-	top_bar.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	top_bar.add_theme_color_override("font_color", Color(0.2, 1.0, 0.7, 0.85))
-	top_bar.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
-	top_bar.add_theme_font_size_override("font_size", 9)
-	top_bar.text = "[F1] Dev Help | [F2] Fog: ON | [F3] Flycam: OFF | [F5-F9] Teleport"
-	add_child(top_bar)
 
-	toast_label = Label.new()
-	toast_label.name = "DevToast"
-	toast_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	toast_label.offset_top = 40.0; toast_label.offset_left = -250.0; toast_label.offset_right = 250.0
-	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	toast_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
-	toast_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
-	toast_label.add_theme_font_size_override("font_size", 11)
-	toast_label.modulate.a = 0.0
-	add_child(toast_label)
+func update_strip(flying: bool, fog_off: bool, speed: float) -> void:
+	var parts := PackedStringArray(["F1 dev"])
+	if flying: parts.append("FLY %.0f m/s" % speed)
+	if fog_off: parts.append("FOG OFF")
+	_strip.text = "   ".join(parts)
 
-	_build_help_panel()
 
-func _build_help_panel() -> void:
-	help_panel = PanelContainer.new()
-	help_panel.name = "DevHelpPanel"
-	help_panel.set_anchors_preset(Control.PRESET_CENTER)
-	help_panel.offset_left = -220.0; help_panel.offset_top = -140.0; help_panel.offset_right = 220.0; help_panel.offset_bottom = 150.0
-	help_panel.visible = false
-	add_child(help_panel)
+func show_toast(msg: String, dur: float = 2.0) -> void:
+	_toast.text = msg
+	_toast.modulate.a = 1.0
+	if _toast_tween and _toast_tween.is_valid(): _toast_tween.kill()
+	_toast_tween = create_tween()
+	_toast_tween.tween_interval(dur)
+	_toast_tween.tween_property(_toast, "modulate:a", 0.0, 0.5)
 
-	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 5)
-	help_panel.add_child(vb)
 
-	var title = Label.new()
-	title.text = "=== DEVELOPER CONTROLS ==="; title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_color_override("font_color", Color(0.2, 1.0, 0.7, 1.0))
-	title.add_theme_font_size_override("font_size", 11); vb.add_child(title)
-
-	var info = Label.new()
-	info.text = "[F1] Toggle This Menu  |  [F2] Toggle Fog (Clear View 4000m)\n[F3] Toggle 6DOF Flycam  (WASD / Space=Up / Ctrl=Down)\n[Shift] Flycam Boost  |  [Mouse Wheel] Fly Speed\n[F5] Bunker 1  |  [F6] Hub  |  [F7] Outpost 2  |  [F8] Outpost 3  |  [F9] Silo"
-	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	info.add_theme_font_size_override("font_size", 9); vb.add_child(info)
-
-	var hb_toggles = HBoxContainer.new(); hb_toggles.alignment = BoxContainer.ALIGNMENT_CENTER; vb.add_child(hb_toggles)
-	var btn_fog = Button.new(); btn_fog.text = "Toggle Fog [F2]"; btn_fog.pressed.connect(func(): fog_toggled.emit()); hb_toggles.add_child(btn_fog)
-	var btn_fly = Button.new(); btn_fly.text = "Toggle Flycam [F3]"; btn_fly.pressed.connect(func(): flycam_toggled.emit()); hb_toggles.add_child(btn_fly)
-
-	var grid = GridContainer.new(); grid.columns = 3; vb.add_child(grid)
-	_add_poi_btn(grid, "Bunker 1 [F5]", 1); _add_poi_btn(grid, "Central Hub [F6]", 2); _add_poi_btn(grid, "Outpost 02 [F7]", 3)
-	_add_poi_btn(grid, "Outpost 03 [F8]", 4); _add_poi_btn(grid, "Missile Silo [F9]", 5)
-
-	var btn_close = Button.new(); btn_close.text = "Close Menu [F1]"; btn_close.pressed.connect(toggle_help); grid.add_child(btn_close)
-
-func _add_poi_btn(parent: Control, txt: String, id: int) -> void:
-	var btn = Button.new(); btn.text = txt; btn.pressed.connect(func(): teleport_requested.emit(id)); parent.add_child(btn)
-
-func update_bar(fog_off: bool, fly_on: bool, speed: float) -> void:
-	var f_txt = "OFF (Clear)" if fog_off else "ON"
-	var fly_txt = "ON (%.0fm/s)" % speed if fly_on else "OFF"
-	top_bar.text = "[F1] Dev Help | [F2] Fog: %s | [F3] Flycam: %s | [F5-F9] Teleport" % [f_txt, fly_txt]
-
-func show_toast(msg: String, dur: float = 2.4) -> void:
-	toast_label.text = msg; toast_label.modulate.a = 1.0
-	if toast_tween and toast_tween.is_valid(): toast_tween.kill()
-	toast_tween = create_tween()
-	toast_tween.tween_interval(dur)
-	toast_tween.tween_property(toast_label, "modulate:a", 0.0, 0.6)
-
-func toggle_help() -> void:
-	help_panel.visible = !help_panel.visible
-	if help_panel.visible:
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	else:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+func _corner_label(preset: Control.LayoutPreset, color: Color, size: int) -> Label:
+	var l := Label.new()
+	l.set_anchors_preset(preset)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var font := FontLibrary.tech_font()
+	if font: l.add_theme_font_override("font", font)
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	add_child(l)
+	return l

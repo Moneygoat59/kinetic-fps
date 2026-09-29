@@ -1,6 +1,8 @@
 class_name StalkerEnemy
 extends CharacterBody3D
 
+signal struck_player   # an attack landed (ForestNightDirector wakes the walker on it)
+
 enum Phase { OBSERVER, STALKER, HUNTING }
 enum State { IDLE, PROWL, CHASE, ATTACK, REPULSED, RETREAT }
 
@@ -169,6 +171,7 @@ func _perform_attack() -> void:
 	if audio and is_inside_tree(): audio.stream = SLASH_SND; audio.pitch_scale = randf_range(0.85, 1.1); audio.play()
 	if audio_crunch and is_inside_tree(): audio_crunch.stream = CRUNCH_SND; audio_crunch.pitch_scale = randf_range(1.1, 1.3); audio_crunch.play()
 	if player.has_method("take_hit"): player.take_hit(20.0, target_facing, _pos(player))
+	struck_player.emit()
 
 func _update_rotation(delta: float) -> void:
 	if target_facing.length_squared() > 0.01: rotation.y = lerp_angle(rotation.y, atan2(target_facing.x, target_facing.z), delta * 7.5)

@@ -2,12 +2,14 @@ extends RefCounted
 ## Set-dressing for the Outpost 73 bunker: materials, marker lights, ground contact-shadow decal, lamp flicker maths.
 ## The build-time helpers run once; `flicker` is a pure function called per frame (no allocations).
 
+const KitLights = preload("res://scripts/props/kit_lights.gd")
 const AMBER := Color(1.0, 0.68, 0.15)
 const WELL_AMBER := Color(1.0, 0.52, 0.10)
 const GRIME_SIZE := 18.0
 const ROOF_LIGHT := "light_roof"
+const BEACON_MAT := "bunker_glow_beacon"
 ## Lights whose energy breathes (the amber well is still pumping) and lamps that are failing (they flicker / drop out).
-const PULSE_LIGHTS := ["light_well", "light_wellhead"]
+const PULSE_LIGHTS := ["light_well", "light_wellhead", "light_pit"]
 const FLICKER_LIGHTS := ["light_ceiling", "light_front", "light_side_l", "light_side_r"]
 ## marker name -> [colour, energy, range, casts_shadow]
 const LIGHTS := {
@@ -17,34 +19,48 @@ const LIGHTS := {
 	"marker_light_side_r": [AMBER, 1.2, 4.0, false],
 	"marker_light_well": [WELL_AMBER, 1.7, 4.0, false],
 	"marker_light_wellhead": [WELL_AMBER, 1.4, 5.0, false],
+	"marker_light_pit": [WELL_AMBER, 0.9, 2.5, false],
 	"marker_light_roof": [AMBER, 4.0, 45.0, false],
 }
 
 
-## Obsidian concrete keeps a glassy sheen; everything else is matte (glTF cannot carry Blender's "specular = 0").
+## Everything is dead matte: rough obsidian concrete, dull 200-year-old steel (glTF cannot carry Blender's "specular = 0").
 static func make_matte(node: Node) -> void:
 	if node is MeshInstance3D and node.mesh:
 		for i in node.mesh.get_surface_count():
 			var mat := node.mesh.surface_get_material(i) as BaseMaterial3D
 			if mat == null:
 				continue
-			if mat.resource_name.begins_with("bunker_concrete"):
-				mat.metallic_specular = 0.7
-				mat.roughness = 0.5
-			else:
-				mat.metallic_specular = 0.0
+			mat.metallic = 0.0
+			mat.metallic_specular = 0.0
+			mat.roughness = 1.0
 	for child in node.get_children():
 		make_matte(child)
 
 
+## First surface material named `mat_name` on any mesh under `node` (e.g. the beacon lens, pulsed at runtime).
+static func find_material(node: Node, mat_name: String) -> BaseMaterial3D:
+	if node is MeshInstance3D and node.mesh:
+		for i in node.mesh.get_surface_count():
+			var mat := node.mesh.surface_get_material(i) as BaseMaterial3D
+			if mat and mat.resource_name == mat_name:
+				return mat
+	for child in node.get_children():
+		var found := find_material(child, mat_name)
+		if found:
+			return found
+	return null
+
+
 ## Adds an omni light under every marker_light_* node (named "light_*"). Returns {name: OmniLight3D}.
-static func add_lights(model: Node3D) -> Dictionary:
+## `specs` is a table like LIGHTS (marker name -> [colour, energy, range, casts_shadow]); other buildings pass their own.
+static func add_lights(model: Node3D, specs: Dictionary = LIGHTS) -> Dictionary:
 	var made := {}
-	for marker_name in LIGHTS:
+	for marker_name in specs:
 		var anchor := model.get_node_or_null(marker_name) as Node3D
 		if anchor == null:
 			continue
-		var spec: Array = LIGHTS[marker_name]
+		var spec: Array = specs[marker_name]
 		var light := OmniLight3D.new()
 		light.name = marker_name.trim_prefix("marker_")
 		light.light_color = spec[0]
@@ -52,6 +68,7 @@ static func add_lights(model: Node3D) -> Dictionary:
 		light.omni_range = spec[2]
 		light.shadow_enabled = spec[3]
 		light.shadow_bias = 0.05
+		KitLights.fade(light)
 		anchor.add_child(light)
 		made[light.name] = light
 	return made

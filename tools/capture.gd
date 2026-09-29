@@ -10,6 +10,10 @@ extends SceneTree
 ##   --no-ui        hide every CanvasLayer (HUD, DevTools, overlays)
 ##   --fit          auto-frame: --look/--dist derived from the content's bounds (best for models)
 ##   --lit          add sun + ambient (for bare models)    --exec PATH    GDScript with `func run(scene, tree)` to set up state
+## A hook that awaits longer than --wait (a test riding a lift) holds the shot with tree.set_meta("capture_hold", true)
+## and releases it with false; --wait counts scaled time, so a hook that speeds up Engine.time_scale needs the hold.
+## A hook that needs the game's own camera current (the walker's eyes, e.g. a terminal close-up) sets
+## tree.set_meta("capture_camera", camera): the shots are taken through it instead of --cam / --look.
 
 const PRESETS := {
 	"front": Vector3(0, 0.25, 1), "back": Vector3(0, 0.25, -1), "left": Vector3(-1, 0.25, 0),
@@ -98,13 +102,17 @@ func _process(_delta: float) -> bool:
 	if job_idx >= jobs.size():
 		quit(0); return true
 	var j: Array = jobs[job_idx]
-	cam.global_position = j[1]
-	cam.look_at(j[2], Vector3.UP)
-	cam.make_current()
+	var own := get_meta("capture_camera") as Camera3D if has_meta("capture_camera") else null
+	if own and is_instance_valid(own) and own.is_inside_tree():
+		own.make_current()                         # a hook shoots through its own camera (the walker's eyes)
+	else:
+		cam.global_position = j[1]
+		cam.look_at(j[2], Vector3.UP)
+		cam.make_current()
 	elapsed += _delta
 	if args.has("no-ui"):
 		_hide_ui(root)
-	if frame >= settle and elapsed >= float(args.get("wait", 0.0)):
+	if frame >= settle and elapsed >= float(args.get("wait", 0.0)) and not get_meta("capture_hold", false):
 		var img := root.get_texture().get_image()
 		var out := String(args.get("out", "shots/capture"))
 		if j[0] != "":

@@ -84,10 +84,10 @@ func _init_ui() -> void:
 	canvas_layer.add_child(hint)
 
 func get_interaction_prompt() -> String:
-	return "" if is_open else "Read Note with E"
+	return "" if is_open else "READ NOTE"
 
-func get_interaction_font() -> Font:
-	return FONT_LIB.kinetic_font()
+func get_interaction_detail() -> String:
+	return "LOOSE PAGE  //  HANDWRITTEN"
 
 func interact(_player: Node) -> void:
 	if canvas_layer == null: _ready()

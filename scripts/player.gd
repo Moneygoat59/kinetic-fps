@@ -25,6 +25,8 @@ var motor: PlayerMotor = PlayerMotor.new(); var vine: PlayerVine = PlayerVine.ne
 var combat: PlayerCombat = PlayerCombat.new(); var health: PlayerHealth = PlayerHealth.new()
 var hud_view: PlayerHudView; var vine_renderer: VineRenderer; var sound_manager: SoundManager
 var step_timer: float = 0.0; var step_is_left: bool = false
+var step_l: AudioStream = STEP_L; var step_r: AudioStream = STEP_R   # levels swap the floor sound (ApartmentLevel: wood)
+var crawl := PlayerCrawl.new()   # the low stance for vent ducts (VentDuct): crawl.set_stance(self, PlayerCrawl.Stance.CRAWL)
 
 func _ready() -> void:
 	sound_manager = SoundManager.new(); input_ctrl = PlayerInput.new()
@@ -82,7 +84,7 @@ func _physics_process(delta: float) -> void:
 			step_timer -= delta
 			if step_timer <= 0.0:
 				step_timer = 0.52
-				SoundManager.play(STEP_L if step_is_left else STEP_R, -13.0, 0.01)
+				SoundManager.play(step_l if step_is_left else step_r, -13.0, 0.01)
 				step_is_left = not step_is_left
 		return
 
@@ -116,11 +118,10 @@ func _handle_clicks(event: InputEvent) -> void:
 
 func _check_interaction() -> void:
 	var col = aim_ray.get_collider() if aim_ray and aim_ray.is_colliding() else null
-	if col and col.has_method("interact"):
+	if col and col.has_method("interact") and (not col.has_method("can_interact") or col.can_interact()):
 		var dist = camera.global_position.distance_to(aim_ray.get_collision_point())
 		if dist <= 4.2 or (col is AmberPool and global_position.distance_to(col.global_position) <= col.pool_radius + 2.0):
-			var font = col.get_interaction_font() if col.has_method("get_interaction_font") else null
-			hud_view.show_prompt(col.get_interaction_prompt() if col.has_method("get_interaction_prompt") else "[E] Interact", font)
+			hud_view.show_prompt(col.get_interaction_prompt() if col.has_method("get_interaction_prompt") else "INTERACT", col.get_interaction_detail() if col.has_method("get_interaction_detail") else "")
 			if Input.is_action_just_pressed("interact"): col.interact(self)
 			return
 	hud_view.hide_prompt()

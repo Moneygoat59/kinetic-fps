@@ -8,10 +8,13 @@ var interact_label: Label
 var damage_rect: ColorRect
 var controls_guide: Label
 var crosshair_dot: ColorRect
+var hud_layer: CanvasLayer
+var walking := false                        # walk mode (dead forest): FieldHud replaces this legacy HUD
 
 func setup_ui(hud_node: CanvasLayer) -> void:
 	if not hud_node:
 		return
+	hud_layer = hud_node
 	speed_label = hud_node.get_node_or_null("SpeedLabel")
 	weapon_label = hud_node.get_node_or_null("WeaponLabel")
 	interact_label = hud_node.get_node_or_null("InteractPrompt")
@@ -81,7 +84,7 @@ func update_health(current_hp: float) -> void:
 	health_label.add_theme_color_override("font_color", col)
 
 func flash_damage() -> void:
-	if damage_rect:
+	if damage_rect and not walking:
 		damage_rect.color.a = clamp(damage_rect.color.a + 0.38, 0.0, 0.65)
 
 func decay_damage_flash(delta: float) -> void:
@@ -90,27 +93,19 @@ func decay_damage_flash(delta: float) -> void:
 
 func set_death_overlay(visible: bool) -> void:
 	if damage_rect:
-		damage_rect.color.a = 0.85 if visible else 0.0
+		damage_rect.color = Color(0.0, 0.0, 0.0, 0.85) if visible and walking else Color(damage_rect.color, 0.85 if visible else 0.0)
 
-func show_prompt(text: String, font: Font = null) -> void:
-	if not interact_label: return
-	interact_label.text = text
-	if font:
-		interact_label.add_theme_font_override("font", font)
-		interact_label.add_theme_font_size_override("font_size", 13)
-		interact_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.35))
-		interact_label.add_theme_constant_override("outline_size", 3)
-		interact_label.add_theme_color_override("font_outline_color", Color(0.12, 0.08, 0.04, 0.95))
-	elif interact_label.has_theme_font_override("font"):
-		interact_label.remove_theme_font_override("font")
-		interact_label.remove_theme_font_size_override("font_size")
-		interact_label.remove_theme_color_override("font_color")
-		interact_label.remove_theme_constant_override("outline_size")
-	interact_label.visible = true
+## Raycast interactables (amber pools, notes, terminals) use the one shared prompt, same as the dosimeter and relays.
+func show_prompt(title: String, detail: String = "") -> void:
+	if interact_label:
+		interact_label.visible = false
+	InteractPrompt.offer(self, title, detail, 1.0)
+
 
 func hide_prompt() -> void:
 	if interact_label:
 		interact_label.visible = false
+
 
 func show_hitmarker(tree: SceneTree) -> void:
 	if crosshair_dot:
@@ -124,7 +119,9 @@ func toggle_help() -> void:
 		controls_guide.visible = not controls_guide.visible
 
 func set_walking_mode(enabled: bool) -> void:
-	if speed_label: speed_label.visible = not enabled
-	if weapon_label: weapon_label.visible = not enabled
-	if controls_guide: controls_guide.visible = not enabled
-	if health_label: health_label.visible = true
+	walking = enabled
+	if hud_layer == null:
+		return
+	for child in hud_layer.get_children():                  # everything but the death fade
+		if child is CanvasItem and child != damage_rect:
+			(child as CanvasItem).visible = not enabled

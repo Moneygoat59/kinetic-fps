@@ -1,13 +1,14 @@
 """Procedural pixel-art textures for the PS1 look (small, seamless, no external assets except the project's own fonts).
 Run: python tools/blender/textures.py   -> models/generated/tex/*.png
-Theme: an abandoned amber-extraction well, decades (100+ years) derelict. Obsidian-black concrete: dirt shows up PALE (dust, salt
-bloom, dust-filled cracks) and glassy glints; rust and dried amber crust are the only colour.
-Surfaces: concrete, concrete_top, floor, metal, plate.   Decals (RGBA): streaks, stencil, hazard, warning, stain, notes, dust, cobweb,
-papers, amber_crust, crack, drips_amber.   Liquid: liquid_flow (emission, scrolled), liquid_pool (RGBA).
+Theme: an amber-extraction well that has run unattended for 200 years. Matte purple-black obsidian concrete: dirt shows up
+slightly PALE (dust, salt bloom, dust-filled cracks); rust and dried amber crust are the only warm colour.
+Surfaces: concrete, concrete_top, floor, metal, plate.   Decals (RGBA): streaks, stencil, hazard, warning, stain, notes, dust,
+papers, amber_crust, crack, drips_amber, sign.   Liquid: liquid_flow (emission, scrolled), liquid_pool (RGBA).
 Screens (emission): screen_term_a/b, screen_scan_a/b, screen_static, screen_map_a/b, screen_gen_a/b (a/b flipped at runtime).
 """
 import math
 import os
+import sys
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -16,7 +17,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 OUT = os.path.join(ROOT, "models", "generated", "tex")
 FONTS = os.path.join(ROOT, "fonts")
-OBSIDIAN = (0.97, 0.99, 1.07)      # cool, glassy black
+OBSIDIAN = (1.02, 0.76, 1.36)      # dark obsidian with a purple cast (multiplies luminance)
 
 
 # ------------------------------------------------------------------ helpers
@@ -120,21 +121,21 @@ def _amber(img, mask, strength=0.9):
 
 # ------------------------------------------------------------------ surfaces
 def concrete(n=256, seed=1):
-    """Obsidian-black board-formed concrete: glassy glints and fracture arcs, pale dust-filled cracks, salt streaks, amber stains."""
+    """Purple-black board-formed obsidian concrete: fracture arcs, rare flecks, pale dust-filled cracks, salt streaks, amber stains."""
     rng = np.random.default_rng(seed)
-    lum = 0.05 + _fbm(n, rng) * 0.045 + rng.random((n, n)) * 0.012 + (_noise(n, 5, rng) - 0.5) * 0.025
-    lum += _arcs(n, rng, 16, 18, 80, 0.10, 0.22) * 0.16                          # conchoidal fracture
+    lum = 0.036 + _fbm(n, rng) * 0.036 + rng.random((n, n)) * 0.01 + (_noise(n, 5, rng) - 0.5) * 0.02
+    lum += _arcs(n, rng, 16, 18, 80, 0.10, 0.22) * 0.1                          # conchoidal fracture
     lum += np.repeat(rng.random((n, 1)), n, axis=1) * 0.008
     for b in range(n // 32):
         lum[b * 32:(b + 1) * 32, :] += rng.uniform(-0.006, 0.006)               # board tone
         lum[b * 32:b * 32 + 2, :] += 0.022                                        # dust in the board seam
-    _streaks(lum, rng, 40, 60, 220, -0.03, -0.085)                               # pale salt / ash streaks
+    _streaks(lum, rng, 40, 60, 220, -0.02, -0.06)                                # pale salt / ash streaks
     for x in (64, 192):
         for y in (48, 176):                                                      # tie-holes: dark, pale rim
             lum[y - 3:y + 4, x - 3:x + 4] += 0.03
             lum[y - 1:y + 2, x - 1:x + 2] -= 0.04
     lum[rng.random((n, n)) > 0.985] += 0.09                                      # spalled aggregate
-    lum[rng.random((n, n)) > 0.996] += 0.24                                      # glassy glints
+    lum[rng.random((n, n)) > 0.997] += 0.1                                       # rare obsidian flecks
     _cracks(lum, rng, 5, 40, 120, -0.08)                                         # dust-filled cracks read pale
     lum += _scratches(n, rng, 26, 8, 40) * 0.5
     img = _tint(lum, *OBSIDIAN)
@@ -144,12 +145,12 @@ def concrete(n=256, seed=1):
 def concrete_top(n=128, seed=4):
     """Cornice / plinth / frames: dustier, water-stained, cracked."""
     rng = np.random.default_rng(seed)
-    lum = 0.06 + _fbm(n, rng, ((8, 0.4), (16, 0.4), (32, 0.2))) * 0.04 + rng.random((n, n)) * 0.012
-    lum += _arcs(n, rng, 8, 14, 50, 0.10, 0.20) * 0.14
-    lum += (_noise(n, 3, rng) > 0.68) * 0.03                                     # dust drifts
-    _streaks(lum, rng, 14, 30, 100, -0.03, -0.07)
-    _cracks(lum, rng, 3, 20, 70, -0.08)
-    lum[rng.random((n, n)) > 0.996] += 0.2
+    lum = 0.042 + _fbm(n, rng, ((8, 0.4), (16, 0.4), (32, 0.2))) * 0.034 + rng.random((n, n)) * 0.01
+    lum += _arcs(n, rng, 8, 14, 50, 0.10, 0.20) * 0.09
+    lum += (_noise(n, 3, rng) > 0.68) * 0.022                                    # dust drifts
+    _streaks(lum, rng, 14, 30, 100, -0.02, -0.05)
+    _cracks(lum, rng, 3, 20, 70, -0.06)
+    lum[rng.random((n, n)) > 0.997] += 0.08
     lum += _scratches(n, rng, 10, 6, 30) * 0.4
     lum[n // 2, :] += 0.02
     img = _tint(lum, *OBSIDIAN)
@@ -159,8 +160,8 @@ def concrete_top(n=128, seed=4):
 def floor(n=128, seed=2):
     """Black slab under decades of dust, amber seepage stains, cracks and grit."""
     rng = np.random.default_rng(seed)
-    lum = 0.045 + _fbm(n, rng) * 0.04 + rng.random((n, n)) * 0.012
-    lum += (_fbm(n, rng, ((6, 0.5), (12, 0.5))) > 0.58) * 0.025                   # dust drifts
+    lum = 0.034 + _fbm(n, rng) * 0.032 + rng.random((n, n)) * 0.01
+    lum += (_fbm(n, rng, ((6, 0.5), (12, 0.5))) > 0.58) * 0.02                    # dust drifts
     lum[::32, :] += 0.02
     lum[:, ::32] += 0.02                                                         # dust-filled slab joints
     _cracks(lum, rng, 4, 30, 90, -0.07)
@@ -173,11 +174,11 @@ def floor(n=128, seed=2):
 def metal(n=128, seed=3):
     """Century-old painted steel: heavy rust, rust drips, dried amber crust, peeling paint, scratches."""
     rng = np.random.default_rng(seed)
-    lum = 0.07 + _fbm(n, rng, ((4, 0.6), (8, 0.4))) * 0.05 + rng.random((n, n)) * 0.015
+    lum = 0.058 + _fbm(n, rng, ((4, 0.6), (8, 0.4))) * 0.045 + rng.random((n, n)) * 0.014
     lum += np.repeat(rng.random((n, 1)), n, axis=1) * 0.012
-    lum += _scratches(n, rng, 26, 6, 32, 0.04, 0.10) * 0.7
-    lum[rng.random((n, n)) > 0.99] += 0.10                                       # paint flakes
-    img = _tint(lum, 1.02, 0.99, 1.0)
+    lum += _scratches(n, rng, 26, 6, 32, 0.04, 0.10) * 0.6
+    lum[rng.random((n, n)) > 0.99] += 0.08                                       # paint flakes
+    img = _tint(lum, 1.0, 0.93, 1.08)
     for x in (10, n - 11):
         for y in (10, n - 11):
             img[y - 1:y + 1, x - 1:x + 1] *= 1.8                                 # rivets
@@ -185,9 +186,9 @@ def metal(n=128, seed=3):
     drips = np.zeros((n, n), dtype=np.float32)
     _streaks(drips, rng, 12, 30, 110, -0.5, -1.0, 2)                             # drips add positive mask
     rmask = np.clip((rust > 0.8) * 0.8 + drips * 0.6, 0, 1)[..., None]
-    img = np.where(rmask > 0, img * (1 - 0.5 * rmask) + np.array([0.13, 0.055, 0.02]) * rmask * (0.6 + 0.6 * rust[..., None]), img)
+    img = np.where(rmask > 0, img * (1 - 0.5 * rmask) + np.array([0.075, 0.032, 0.012]) * rmask * (0.6 + 0.6 * rust[..., None]), img)
     amber = (_noise(n, 9, rng) > 0.9)[..., None]                                # dried amber crust
-    img = np.where(amber, img * 0.4 + np.array([0.15, 0.07, 0.012]), img)
+    img = np.where(amber, img * 0.4 + np.array([0.09, 0.042, 0.008]), img)
     img *= (0.8 + 0.2 * np.linspace(0, 1, n))[:, None, None]
     img[0, :] *= 0.5
     img[:, 0] *= 0.5
@@ -197,17 +198,17 @@ def metal(n=128, seed=3):
 def plate(n=128, seed=5):
     """Interior wall plating: dark panels, seam grooves, bolts, peeling paint, rust bloom and drips at the seams, grime."""
     rng = np.random.default_rng(seed)
-    lum = 0.065 + _fbm(n, rng, ((4, 0.5), (8, 0.5))) * 0.05 + rng.random((n, n)) * 0.012
+    lum = 0.052 + _fbm(n, rng, ((4, 0.5), (8, 0.5))) * 0.045 + rng.random((n, n)) * 0.012
     lum += (_noise(n, 5, rng) > 0.8) * 0.035                                     # peeling-paint patches
     for k in (0, 64):
         lum[k:k + 2, :] -= 0.03
         lum[:, k:k + 2] -= 0.03
-    img = _tint(lum, 1.03, 1.0, 1.0)
+    img = _tint(lum, 1.0, 0.92, 1.1)
     drips = np.zeros((n, n), dtype=np.float32)
     for k in (0, 64):
         _streaks(drips, rng, 3, 24, 70, -0.5, -1.0, 2)
     rust = np.clip((_noise(n, 10, rng) > 0.82) * 0.7 + drips * 0.6, 0, 1)[..., None]
-    img = img * (1 - 0.5 * rust) + np.array([0.12, 0.05, 0.02]) * rust
+    img = img * (1 - 0.5 * rust) + np.array([0.07, 0.03, 0.012]) * rust
     for i in range(8, n, 16):
         for k in (5, 69):
             img[k, i] *= 1.8
@@ -232,13 +233,13 @@ def decal_streaks(w=128, h=256, seed=11):
     _save_img("decal_streaks.png", _rgba((0.34, 0.32, 0.29), a))
 
 
-def decal_stencil(w=128, h=192, seed=12):
+def decal_stencil(w=128, h=192, seed=12, num="73", out="decal_stencil.png"):
     """Century-faded stencil lettering: small 'OUTPOST', big '73', small 'EXTRACTION'; mostly flaked away."""
     rng = np.random.default_rng(seed)
     im = Image.new("L", (w, h), 0)
     d = ImageDraw.Draw(im)
     d.text((w // 2, 14), "OUTPOST", font=_font("Oxanium-SemiBold.ttf", 22), fill=255, anchor="mt")
-    d.text((w // 2, 108), "73", font=_font("Oxanium-SemiBold.ttf", 120), fill=255, anchor="mm")
+    d.text((w // 2, 108), num, font=_font("Oxanium-SemiBold.ttf", 120), fill=255, anchor="mm")
     d.text((w // 2, 178), "EXTRACTION", font=_font("Oxanium-SemiBold.ttf", 16), fill=255, anchor="mm")
     for y in (114, 146):                                                         # stencil bridges
         d.rectangle([0, y, w, y + 3], fill=0)
@@ -246,7 +247,7 @@ def decal_stencil(w=128, h=192, seed=12):
     a = np.asarray(im, dtype=np.float32) / 255
     wear = np.clip(0.2 + 1.5 * np.resize(_noise(max(w, h), 6, rng), (h, w)), 0, 1)
     a = a * wear * (rng.random((h, w)) > 0.3)                                    # heavily flaked
-    _save_img("decal_stencil.png", _rgba((0.46, 0.44, 0.40), a * 0.75))
+    _save_img(out, _rgba((0.46, 0.44, 0.40), a * 0.75))
 
 
 def decal_hazard(w=256, h=32, seed=13):
@@ -326,30 +327,6 @@ def decal_dust(n=128, seed=41):
     _save_img("decal_dust.png", _rgba((0.36, 0.34, 0.31), a))
 
 
-def decal_cobweb(n=128, seed=42):
-    """Quarter cobweb anchored at the (0,0) corner of the texture."""
-    rng = np.random.default_rng(seed)
-    im = Image.new("RGBA", (n, n), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-    col = (200, 198, 190)
-    angs = np.linspace(0.0, math.pi / 2, 8)
-    for a in angs:
-        d.line([(0, 0), (n * math.cos(a), n * math.sin(a))], fill=col + (120,), width=1)
-    for r in range(14, n, 15):
-        for i in range(len(angs) - 1):
-            if rng.random() < 0.22:
-                continue
-            a0, a1 = angs[i], angs[i + 1]
-            am = (a0 + a1) / 2
-            p0, p1 = (r * math.cos(a0), r * math.sin(a0)), (r * math.cos(a1), r * math.sin(a1))
-            pm = (r * 0.9 * math.cos(am), r * 0.9 * math.sin(am))
-            d.line([p0, pm, p1], fill=col + (90,), width=1)
-    a = np.asarray(im, dtype=np.float32) / 255
-    a[..., 3] *= (rng.random((n, n)) > 0.1)
-    Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8), "RGBA").save(os.path.join(OUT, "decal_cobweb.png"))
-    print("TEX decal_cobweb.png")
-
-
 def decal_papers(n=128, seed=43):
     """Scattered loose papers on the floor."""
     rng = np.random.default_rng(seed)
@@ -403,6 +380,29 @@ def decal_crack(w=128, h=256, seed=45):
     rgb[c > 0.5] = 0.0
     a = np.clip(edge * 0.45 + c * 0.55, 0, 1)
     _save_img("decal_crack.png", Image.fromarray((np.clip(np.dstack([rgb, a]), 0, 1) * 255).astype(np.uint8), "RGBA"))
+
+
+def decal_sign(w=128, h=96, seed=46, main="AMBER MAIN 04", route="W-73 > SILO", out="decal_sign.png"):
+    """Buried-pipeline marker plate: faded amber paint, black stencil, rust bleeding from the bolt holes."""
+    rng = np.random.default_rng(seed)
+    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    d.rectangle([1, 1, w - 2, h - 2], fill=(122, 78, 14, 255), outline=(14, 12, 12, 255), width=3)
+    d.text((w // 2, 16), main, font=_font("Silkscreen-Regular.ttf", 11), fill=(14, 12, 12, 255), anchor="mm")
+    d.text((w // 2, 44), route, font=_font("Oxanium-SemiBold.ttf", 17), fill=(14, 12, 12, 255), anchor="mm")
+    d.text((w // 2, 70), "BURIED LINE", font=_font("Silkscreen-Regular.ttf", 10), fill=(14, 12, 12, 255), anchor="mm")
+    d.text((w // 2, 83), "DO NOT DIG", font=_font("Silkscreen-Regular.ttf", 10), fill=(14, 12, 12, 255), anchor="mm")
+    for x, y in ((7, 7), (w - 8, 7), (7, h - 8), (w - 8, h - 8)):
+        d.ellipse([x - 2, y - 2, x + 2, y + 2], fill=(20, 10, 6, 255))
+    arr = np.asarray(im, dtype=np.float32) / 255
+    rot = np.resize(_noise(128, 6, rng), (h, w))
+    arr[..., :3] *= (0.4 + 0.4 * rot)[..., None]                                   # grime
+    drip = np.zeros((h, w), dtype=np.float32)
+    _streaks(drip, rng, 10, 20, 70, -0.6, -1.0, 2)
+    arr[..., 0] *= 1 + np.clip(drip, 0, 1) * 0.6                                   # rust bleed
+    arr[..., 3] *= (rng.random((h, w)) > 0.1) * (0.65 + 0.35 * (rot < 0.8))
+    Image.fromarray((np.clip(arr, 0, 1) * 255).astype(np.uint8), "RGBA").save(os.path.join(OUT, out))
+    print("TEX " + out)
 
 
 # ------------------------------------------------------------------ amber liquid
@@ -477,9 +477,9 @@ def _text_screen(lines, size, color, w=256, h=192, cursor=None, font="VT323-Regu
 
 def screens():
     amber = (255, 150, 30)
-    lines = ["WELL 73 // AMBER EXTRACTION", "-" * 30, "AUTO MODE ....... ENGAGED", "UPTIME ...... 41,882 DAYS",
-             "FLOW ............ 41 L/MIN", "RESERVOIR ....... 84%", "LAST OPERATOR .. 41,880 D", "MAINTENANCE .... OVERDUE",
-             "> LINE 2: UNKNOWN LOAD", "> AWAITING OPERATOR"]
+    lines = ["WELL 73 // AMBER EXTRACTION", "-" * 30, "AUTO MODE ....... ENGAGED", "UPTIME ...... 73,051 DAYS",
+             "FLOW ............ 41 L/MIN", "MAIN 04 > SILO .. PRIMED", "LAST OPERATOR .. 73,049 D", "MAINTENANCE .... OVERDUE",
+             "> PUMP JACK 6 SPM", "> AWAITING OPERATOR"]
     for tag, cur, gl in (("a", (8 + int(20 * 0.4) * 19, 6 + 9 * 18 + 3), None), ("b", None, 7)):
         _save_img(f"screen_term_{tag}.png", _crt(_text_screen(lines, 20, amber, cursor=cur), glitch_seed=gl))
 
@@ -529,6 +529,11 @@ def screens():
             col = (255, 60, 40) if k == "SILO" else amber
             d.rectangle([p[0] - 4, p[1] - 4, p[0] + 4, p[1] + 4], outline=col)
             d.text((p[0] + 8, p[1] - 8), k, font=_font("VT323-Regular.ttf", 15), fill=col)
+        for k in range(0, 10, 2):                                                   # buried main 04: W-73 -> SILO (dashed)
+            a0, a1 = k / 10, (k + 1) / 10
+            s0 = (me[0] + (nodes["SILO"][0] - me[0]) * a0, me[1] + (nodes["SILO"][1] - me[1]) * a0)
+            s1 = (me[0] + (nodes["SILO"][0] - me[0]) * a1, me[1] + (nodes["SILO"][1] - me[1]) * a1)
+            d.line([s0, s1], fill=(200, 60, 30), width=1)
         d.ellipse([me[0] - 3, me[1] - 3, me[0] + 3, me[1] + 3], fill=(120, 255, 140) if tag == "a" else (10, 40, 15))
         d.text((me[0] - 10, me[1] + 6), "W-73", font=_font("VT323-Regular.ttf", 14), fill=(120, 255, 140))
         _save_img(f"screen_map_{tag}.png", _crt(im))
@@ -543,7 +548,42 @@ def screens():
         _save_img(f"screen_gen_{tag}.png", _crt(im, vignette=0.3, bloom=0.8))
 
 
+def outposts():
+    """Per-well textures of the other outposts (tools/blender/props/outpost_variants.py): stencil number, buried-main marker
+    plate (their mains run to the hub), and the site map with that well's own beacon blinking and its fault flagged."""
+    amber, green, red = (255, 150, 30), (120, 255, 140), (255, 60, 40)
+    faults = {"02": "R-02 NO CARRIER // DISH DOWN", "03": "W-03 PUMP STALL // OVERFLOW"}
+    for num, seed in (("02", 17), ("03", 19)):
+        decal_stencil(seed=seed, num=num, out=f"decal_stencil_{num}.png")
+        decal_sign(seed=seed + 30, main=f"AMBER MAIN {num}", route=f"W-{num} > HUB", out=f"decal_sign_{num}.png")
+        nodes = {"HUB": (120, 84), "W-73": (40, 56), "W-02": (186, 44), "W-03": (192, 118), "SILO": (56, 128)}
+        me = nodes.pop(f"W-{num}")
+        for tag in ("a", "b"):
+            im = Image.new("RGB", (256, 160), (4, 3, 1))
+            d = ImageDraw.Draw(im)
+            d.fontmode = "1"
+            d.text((8, 4), "PIPELINE MAP // SECTOR 04", font=_font("VT323-Regular.ttf", 18), fill=amber)
+            for k, p in nodes.items():
+                if k != "HUB":
+                    d.line([nodes["HUB"], p], fill=(200, 60, 30) if k == "SILO" else (120, 70, 15), width=1)
+            for k in range(0, 10, 2):                                               # this well's main to the hub (dashed)
+                a0, a1 = k / 10, (k + 1) / 10
+                d.line([(me[0] + (nodes["HUB"][0] - me[0]) * a0, me[1] + (nodes["HUB"][1] - me[1]) * a0),
+                        (me[0] + (nodes["HUB"][0] - me[0]) * a1, me[1] + (nodes["HUB"][1] - me[1]) * a1)], fill=(200, 60, 30))
+            for k, p in nodes.items():
+                col = red if k == "SILO" else amber
+                d.rectangle([p[0] - 4, p[1] - 4, p[0] + 4, p[1] + 4], outline=col)
+                d.text((p[0] + 8, p[1] - 8), k, font=_font("VT323-Regular.ttf", 15), fill=col)
+            d.ellipse([me[0] - 3, me[1] - 3, me[0] + 3, me[1] + 3], fill=green if tag == "a" else (10, 40, 15))
+            d.text((me[0] - 22, me[1] + 6), f"W-{num}", font=_font("VT323-Regular.ttf", 14), fill=green)
+            d.text((8, 142), faults[num], font=_font("VT323-Regular.ttf", 15), fill=red if tag == "a" else (90, 25, 15))
+            _save_img(f"screen_map{num}_{tag}.png", _crt(im))
+
+
 if __name__ == "__main__":
+    if sys.argv[1:] == ["outposts"]:
+        outposts()
+        sys.exit(0)
     concrete()
     concrete_top()
     floor()
@@ -556,11 +596,12 @@ if __name__ == "__main__":
     decal_stain()
     decal_notes()
     decal_dust()
-    decal_cobweb()
     decal_papers()
     decal_amber_crust()
     decal_crack()
     liquid_flow()
     liquid_pool()
     decal_drips_amber()
+    decal_sign()
     screens()
+    outposts()

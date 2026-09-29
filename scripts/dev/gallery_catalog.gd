@@ -14,7 +14,8 @@ const CATEGORY_NAMES: Dictionary = {
 	"kaykit_space_base": "KayKit Space Base",
 	"industrial": "Industrial Kit",
 	"kaykit_dungeon": "KayKit Dungeon Remastered",
-	"kaykit_hexagons": "KayKit Hexagons"
+	"kaykit_hexagons": "KayKit Hexagons",
+	"generated": "Outpost 73 Bunker & Prop Kit (Blender)"
 }
 
 static func build_catalog() -> Array[Dictionary]:

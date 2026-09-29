@@ -3,6 +3,7 @@ extends Node3D
 
 const AMBER_POOL = preload("res://scripts/amber_pool.gd")
 const SPIKE_FIELD = preload("res://scripts/ancient_spike_field.gd")
+const PropCache = preload("res://scripts/props/prop_cache.gd")
 const TREE_POOL: Array[PackedScene] = [
 	preload("res://models/dead_forest/dead_tree_1.glb"), preload("res://models/dead_forest/dead_tree_2.glb"),
 	preload("res://models/dead_forest/dead_tree_3.glb"), preload("res://models/dead_forest/dead_tree_4.glb"),
@@ -79,6 +80,7 @@ func _on_chunk_recycled(props_node: Node3D, cx: int, cz: int) -> void:
 		pool.build_pool(terrain_ref, p.x, p.z, p.r, p.d, p.seed)
 		props_node.add_child(pool)
 		pools.append(Vector3(p.x, p.z, p.r * 1.75))
+	pools.append_array(BuriedRemnants.scatter(props_node, terrain_ref, cx, cz, _is_blocked.bind(pools)))   # trees keep off it
 
 	var is_spike_chunk = SPIKE_FIELD.has_spike_field(cx, cz)
 	var tree_count = 12 if is_spike_chunk else 14
@@ -88,7 +90,9 @@ func _on_chunk_recycled(props_node: Node3D, cx: int, cz: int) -> void:
 		var sc = Vector3.ONE * rng.randf_range(1.15, 2.0)
 		_spawn_prop(TREE_POOL[rng.randi_range(0, TREE_POOL.size() - 1)], props_node, Vector3(x, 0.0, z), sc, rng.randf() * TAU, 0.4 * sc.x, 0.35 * sc.y, true, true, null)
 	if is_spike_chunk:
-		SPIKE_FIELD.spawn_spikes(props_node, terrain_ref, cx, cz, min_x, min_z, pools)
+		var blocked: Array[Vector3] = pools.duplicate()   # spikes also keep out of cleared building sites
+		for ez in exclusion_zones: blocked.append(Vector3(ez.x, ez.z, ez.r))
+		SPIKE_FIELD.spawn_spikes(props_node, terrain_ref, cx, cz, min_x, min_z, blocked)
 	for i in range(3):
 		var x = min_x + rng.randf() * 48.0; var z = min_z + rng.randf() * 48.0
 		if _is_blocked(x, z, pools): continue
@@ -125,10 +129,7 @@ func _spawn_prop(scene: PackedScene, parent: Node3D, pos: Vector3, sc: Vector3, 
 		for child in inst.find_children("*", "MeshInstance3D"):
 			var mi = child as MeshInstance3D
 			if mi and mi.get_active_material(0) is StandardMaterial3D:
-				var m = StandardMaterial3D.new(); m.albedo_texture = mi.get_active_material(0).albedo_texture
-				m.albedo_color = tint; m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-				m.diffuse_mode = BaseMaterial3D.DIFFUSE_LAMBERT_WRAP; m.roughness = 0.95
-				m.cull_mode = BaseMaterial3D.CULL_BACK; mi.material_override = m
+				mi.material_override = PropCache.tinted(mi.get_active_material(0).albedo_texture, tint)
 	elif mat:
 		for child in inst.find_children("*", "MeshInstance3D"):
 			var mi = child as MeshInstance3D
@@ -142,7 +143,7 @@ func _spawn_prop(scene: PackedScene, parent: Node3D, pos: Vector3, sc: Vector3, 
 			for child in inst.find_children("*", "MeshInstance3D"):
 				var mi = child as MeshInstance3D
 				if mi and mi.mesh:
-					var shape = mi.mesh.create_convex_shape()
+					var shape = PropCache.convex(mi.mesh)
 					if shape:
 						var col = CollisionShape3D.new(); col.shape = shape; col.transform = mi.transform; body.add_child(col)
 		inst.add_child(body)

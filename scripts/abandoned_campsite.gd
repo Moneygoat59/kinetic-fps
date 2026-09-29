@@ -1,6 +1,7 @@
 class_name AbandonedCampsite
 extends Node3D
 
+const KitLights = preload("res://scripts/props/kit_lights.gd")
 const BARK_TEX = preload("res://textures/decayed_bark_seamless.png")
 const STONE_TEX = preload("res://textures/mossy_stone_seamless.png")
 
@@ -48,7 +49,7 @@ func build_campsite(terrain: Node3D, pos_x: float, pos_z: float) -> void:
 	_box(Vector3(0.0, -0.01, 0.0), Vector3(3.3, 0.06, 3.6), tarp_mat, false); _box(Vector3(-0.85, 0.04, -0.2), Vector3(0.80, 0.06, 1.8), canvas_mat, false)
 	_cyl(Vector3(-0.85, 0.13, -0.9), 0.12, 0.78, canvas_mat, false, Vector3(0, 0, deg_to_rad(90))); _box(Vector3(0.85, 0.22, -0.6), Vector3(0.55, 0.44, 0.55), crate_mat, true)
 	_cyl(Vector3(0.85, 0.46, -0.6), 0.075, 0.04, metal_mat, false); _cyl(Vector3(0.85, 0.55, -0.6), 0.060, 0.14, glass_mat, false); _cyl(Vector3(0.85, 0.63, -0.6), 0.085, 0.03, metal_mat, false)
-	lantern_light = OmniLight3D.new(); lantern_light.position = Vector3(0.85, 0.56, -0.6); lantern_light.light_color = Color(1.0, 0.70, 0.25); lantern_light.light_energy = 0.85; lantern_light.omni_range = 4.5; add_child(lantern_light)
+	lantern_light = OmniLight3D.new(); lantern_light.position = Vector3(0.85, 0.56, -0.6); lantern_light.light_color = Color(1.0, 0.70, 0.25); lantern_light.light_energy = 0.85; lantern_light.omni_range = 4.5; KitLights.fade(lantern_light); add_child(lantern_light)
 	var note = load("res://scripts/paper_note.gd").new(); note.position = Vector3(0.72, 0.445, -0.48); note.rotation.y = deg_to_rad(-15.0); add_child(note)
 
 	# Dead campfire: soot-dusted ash bed, 10 mossy/soot stones, criss-cross charred logs, ember glow
@@ -60,7 +61,7 @@ func build_campsite(terrain: Node3D, pos_x: float, pos_z: float) -> void:
 	_cyl(Vector3(3.6, 0.07, 0.6), 0.06, 0.85, wood_mat, false, Vector3(deg_to_rad(8.0), deg_to_rad(35.0), deg_to_rad(85.0)))
 	_cyl(Vector3(3.6, 0.09, 0.6), 0.055, 0.80, wood_mat, false, Vector3(deg_to_rad(-6.0), deg_to_rad(-45.0), deg_to_rad(82.0)))
 	_cyl(Vector3(3.6, 0.12, 0.6), 0.05, 0.75, wood_mat, false, Vector3(deg_to_rad(4.0), deg_to_rad(80.0), deg_to_rad(86.0)))
-	var ember = OmniLight3D.new(); ember.position = Vector3(3.6, 0.45, 0.6); ember.light_color = Color(1.0, 0.40, 0.08); ember.light_energy = 3.2; ember.omni_range = 34.0; add_child(ember)
+	var ember = OmniLight3D.new(); ember.position = Vector3(3.6, 0.45, 0.6); ember.light_color = Color(1.0, 0.40, 0.08); ember.light_energy = 3.2; ember.omni_range = 34.0; KitLights.fade(ember); add_child(ember)
 
 	# Weathered cut sitting logs arranged with open clearance around campfire
 	_sitting_log(Vector3(3.6, 0.15, 2.25), 0.18, 1.85, wood_mat, deg_to_rad(12.0))

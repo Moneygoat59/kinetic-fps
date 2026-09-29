@@ -5,11 +5,11 @@ const DRINK_SOUND = preload("res://audio/sci-fi/Audio/slime_000.ogg")
 const LUB_SOUND = preload("res://audio/impacts/Audio/impactSoft_heavy_000.ogg")
 const DUB_SOUND = preload("res://audio/impacts/Audio/impactSoft_heavy_001.ogg")
 const TOXIC_SHADER = preload("res://shaders/amber_toxicity.gdshader")
-const FONT_LIB = preload("res://scripts/ui/font_library.gd")
 
 const BOOST_DURATION: float = 15.0
 const BOOST_MULT: float = 1.35
 const TOXICITY_DURATION: float = 7.0
+const DRINK_THOUGHTS := ["It burns going down. My heart's racing.", "Again. I can feel it in my teeth.", "I shouldn't keep doing this."]
 
 var player_ref: CharacterBody3D
 var base_speed: float = 5.2
@@ -26,7 +26,7 @@ var heart_pulse: float = 0.0
 var canvas_layer: CanvasLayer
 var screen_overlay: ColorRect
 var shader_mat: ShaderMaterial
-var buff_label: Label
+var _drinks := 0
 var lub_player: AudioStreamPlayer
 var dub_player: AudioStreamPlayer
 var drink_player: AudioStreamPlayer
@@ -59,14 +59,6 @@ func _init_visuals() -> void:
 	screen_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE; screen_overlay.visible = false
 	canvas_layer.add_child(screen_overlay)
 
-	buff_label = Label.new()
-	buff_label.anchors_preset = Control.PRESET_BOTTOM_LEFT
-	buff_label.offset_left = 10.0; buff_label.offset_top = -40.0; buff_label.offset_right = 240.0; buff_label.offset_bottom = -24.0
-	buff_label.add_theme_font_size_override("font_size", 10)
-	buff_label.add_theme_color_override("font_color", Color(1.0, 0.72, 0.15))
-	var f = FONT_LIB.kinetic_font(); if f: buff_label.add_theme_font_override("font", f)
-	buff_label.visible = false
-	canvas_layer.add_child(buff_label)
 
 func trigger() -> void:
 	if not player_ref: player_ref = get_parent() as CharacterBody3D
@@ -86,7 +78,8 @@ func trigger() -> void:
 		player_ref.motor.ground_speed = base_speed * BOOST_MULT
 		is_boosted = true
 	boost_timer = BOOST_DURATION
-	if buff_label: buff_label.visible = true
+	FieldHud.speak(DRINK_THOUGHTS[mini(_drinks, DRINK_THOUGHTS.size() - 1)])  # the surge is felt, not shown as a timer
+	_drinks += 1
 
 func _process(delta: float) -> void:
 	if delta <= 0.0: return
@@ -95,8 +88,6 @@ func _process(delta: float) -> void:
 		if boost_timer <= 0.0:
 			is_boosted = false
 			if player_ref and player_ref.get("motor"): player_ref.motor.ground_speed = base_speed
-			if buff_label: buff_label.visible = false
-		elif buff_label: buff_label.text = "AMBER SURGE: %02.0fs" % ceilf(boost_timer)
 
 	if toxicity_timer > 0.0:
 		toxicity_timer -= delta

@@ -6,13 +6,12 @@ signal held_item_changed(index: int, item_data: Dictionary)
 const SWITCH_SOUND = preload("res://audio/ui/Audio/switch_001.ogg")
 
 var held_items: Array[Dictionary] = [
-	{"id": "blaster", "name": "MK-2 KINETIC BLASTER", "type": 0, "ammo": "60/60", "icon_path": "res://textures/ui/icons/icon_blaster.png"},
 	{"id": "grenade", "name": "PINE-FRAG GRENADE", "type": 1, "ammo": "x3", "icon_path": "res://textures/ui/icons/icon_grenade.png"},
 	{"id": "dosimeter", "name": "FIELD DOSIMETER MK-IV", "type": 2, "ammo": "RAD-ACTIVE", "icon_path": "res://textures/ui/icons/icon_dosimeter.png"},
 	{"id": "torch", "name": "SURVIVAL FLARE TORCH", "type": 3, "ammo": "LIT", "icon_path": "res://textures/ui/icons/icon_torch.png"}
 ]
 
-var current_idx: int = 0
+var current_idx: int = -1   # -1 = empty hands (the walker starts holding nothing)
 var combat_ref: PlayerCombat
 var sfx: AudioStreamPlayer
 var torch_light: OmniLight3D
@@ -37,14 +36,12 @@ func setup(combat: PlayerCombat, camera: Camera3D) -> void:
 		torch_light.visible = false
 		player_cam.add_child(torch_light)
 
-	_apply_held_slot(0)
-
 func rotate_next() -> void:
 	current_idx = (current_idx + 1) % held_items.size()
 	_apply_held_slot(current_idx)
 
 func rotate_prev() -> void:
-	current_idx = (current_idx - 1 + held_items.size()) % held_items.size()
+	current_idx = held_items.size() - 1 if current_idx < 0 else (current_idx - 1 + held_items.size()) % held_items.size()
 	_apply_held_slot(current_idx)
 
 func select_slot(idx: int) -> void:
@@ -53,32 +50,29 @@ func select_slot(idx: int) -> void:
 		_apply_held_slot(current_idx)
 
 func get_current_item() -> Dictionary:
-	return held_items[current_idx]
+	return held_items[current_idx] if current_idx >= 0 else {}
 
 func _apply_held_slot(idx: int) -> void:
 	current_idx = idx
 	var it = held_items[idx]
 	if sfx: sfx.play()
 
+	var id: String = it["id"]
 	if torch_light:
-		torch_light.visible = (idx == 3)
+		torch_light.visible = (id == "torch")
 
 	if player_cam:
 		var gm = player_cam.get_node_or_null("GunMount")
-		if gm: gm.visible = (idx == 0 or idx == 1)
+		if gm: gm.visible = (id == "grenade")
 		var tr = player_cam.get_node_or_null("HeldFieldTracker")
-		if tr: tr.visible = (idx == 2)
+		if tr: tr.visible = (id == "dosimeter")
 
 	if combat_ref:
-		match idx:
-			0: combat_ref.switch_to(PlayerCombat.WeaponType.BLASTER)
-			1: combat_ref.switch_to(PlayerCombat.WeaponType.GRENADE)
-			2:
-				if combat_ref.gun_mesh: combat_ref.gun_mesh.visible = false
-				if combat_ref.grenade_mount: combat_ref.grenade_mount.visible = false
-			3:
-				if combat_ref.gun_mesh: combat_ref.gun_mesh.visible = false
-				if combat_ref.grenade_mount: combat_ref.grenade_mount.visible = false
+		if id == "grenade":
+			combat_ref.switch_to(PlayerCombat.WeaponType.GRENADE)
+		else:
+			if combat_ref.gun_mesh: combat_ref.gun_mesh.visible = false
+			if combat_ref.grenade_mount: combat_ref.grenade_mount.visible = false
 
 	emit_signal("held_item_changed", idx, it)
 
@@ -103,6 +97,4 @@ func handle_input(event: InputEvent) -> bool:
 			select_slot(1); return true
 		elif event.keycode == KEY_3:
 			select_slot(2); return true
-		elif event.keycode == KEY_4:
-			select_slot(3); return true
 	return false

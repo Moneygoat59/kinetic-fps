@@ -4,9 +4,10 @@ extends Area3D
 const SIZZLE_SOUND = preload("res://audio/sci-fi/Audio/slime_000.ogg")
 const BUBBLE_SOUND = preload("res://audio/sci-fi/Audio/slime_001.ogg")
 const TOXICITY_EFFECT = preload("res://scripts/amber_toxicity_effect.gd")
-const FONT_LIB = preload("res://scripts/ui/font_library.gd")
 
-static var sludge_tex: ImageTexture; static var emit_tex: ImageTexture
+const KitLights = preload("res://scripts/props/kit_lights.gd")
+const SLUDGE_TEX = preload("res://textures/amber_sludge_pixel.png")
+const EMIT_TEX = preload("res://textures/amber_sludge_pixel_emit.png")
 
 var pool_radius: float = 3.0
 var damage_timer: float = 0.0
@@ -19,14 +20,9 @@ var liquid_mat: StandardMaterial3D
 var stain_mat: StandardMaterial3D
 var vapor_mi: MeshInstance3D
 
-static func _load_tex(path: String) -> ImageTexture:
-	var img = Image.load_from_file(path)
-	return ImageTexture.create_from_image(img) if (img and not img.is_empty()) else null
-
 func build_pool(terrain: Node3D, pos_x: float, pos_z: float, radius: float, depth: float = 0.8, p_seed: int = 0) -> void:
 	pool_radius = radius; time_offset = randf() * 10.0
-	if not sludge_tex: sludge_tex = _load_tex("res://textures/amber_sludge_pixel.png")
-	if not emit_tex: emit_tex = _load_tex("res://textures/amber_sludge_pixel_emit.png")
+	var sludge_tex: Texture2D = SLUDGE_TEX; var emit_tex: Texture2D = EMIT_TEX
 
 	var ly = terrain.get_liquid_y(pos_x, pos_z) if (terrain and terrain.has_method("get_liquid_y")) else (terrain.get_height(pos_x, pos_z) if terrain else 0.0)
 	position = Vector3(pos_x, ly, pos_z)
@@ -63,7 +59,7 @@ func build_pool(terrain: Node3D, pos_x: float, pos_z: float, radius: float, dept
 
 	pool_light = OmniLight3D.new(); pool_light.position = Vector3(0.0, 0.35, 0.0)
 	pool_light.light_color = Color(1.0, 0.58, 0.10); pool_light.light_energy = 2.0
-	pool_light.omni_range = radius * 2.8; add_child(pool_light)
+	pool_light.omni_range = radius * 2.8; KitLights.fade(pool_light); add_child(pool_light)
 
 	var col = CollisionShape3D.new(); var shape = CylinderShape3D.new()
 	shape.radius = radius * 1.06; shape.height = 0.70; col.shape = shape; col.position.y = 0.05; add_child(col)
@@ -74,10 +70,11 @@ func build_pool(terrain: Node3D, pos_x: float, pos_z: float, radius: float, dept
 	body_entered.connect(_on_body_entered); body_exited.connect(_on_body_exited)
 
 var drink_cooldown: float = 0.0
-func get_interaction_prompt() -> String: return "Drink with E"
-func get_interaction_font() -> Font: return FONT_LIB.kinetic_font()
+var drinkable := true   # ForestNights "drink", read in _ready: the first night the walker will not touch it
+func can_interact() -> bool: return drinkable
+func get_interaction_prompt() -> String: return "DRINK"
 func interact(p: Node) -> void:
-	if drink_cooldown > 0.0: return
+	if not drinkable or drink_cooldown > 0.0: return
 	drink_cooldown = 1.8; TOXICITY_EFFECT.apply_to_player(p)
 
 func _create_seep_mesh(rad: float, p_seed: int, fade_edge: bool) -> ArrayMesh:
@@ -108,6 +105,7 @@ func _create_seep_mesh(rad: float, p_seed: int, fade_edge: bool) -> ArrayMesh:
 	st.generate_normals(); return st.commit()
 
 func _ready() -> void:
+	drinkable = ForestNights.spec(ForestNights.current(get_tree())).get("drink", true)
 	if bubble_audio and not bubble_audio.playing: bubble_audio.play()
 
 func _loop_bubbles() -> void:

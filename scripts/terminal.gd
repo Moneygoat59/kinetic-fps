@@ -23,7 +23,10 @@ func _ready():
 	_setup_dialogue_ui()
 
 func get_interaction_prompt() -> String:
-	return "[E] Read: " + terminal_title
+	return "READ TERMINAL"
+
+func get_interaction_detail() -> String:
+	return terminal_title
 
 func interact(_player: Node) -> void:
 	is_open = !is_open

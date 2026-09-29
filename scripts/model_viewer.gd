@@ -4,7 +4,7 @@ extends Node3D
 const FACILITY_SCRIPT = preload("res://scripts/concrete_facility.gd")
 const BUNKER_SCRIPT = preload("res://scripts/small_bunker.gd")
 const PYLON_SCRIPT = preload("res://scripts/nuclear_pylon.gd")
-const SILO_SCRIPT = preload("res://scripts/missile_silo.gd")
+const SILO_SCRIPT = preload("res://scripts/silo/missile_silo.gd")
 const METAL_TEX = preload("res://textures/gun_metal_scratched.png")
 
 var cam: Camera3D; var cam_rot: Vector2 = Vector2.ZERO; var move_speed: float = 16.0
@@ -97,8 +97,8 @@ func _setup_exhibits() -> void:
 	_omni(Vector3(18.5, 1.8, 42.0), Color(1.0, 0.72, 0.16), 2.2, 8.0)
 	exhibits.append({"name": "Field Tracker & Waypoint Pylon", "pos": Vector3(18.5, 2.0, 46.0), "target": Vector3(18.5, 1.5, 40.0)})
 	# 10: Colossal Basalt Missile Silo Complex (Abandoned)
-	var silo = SILO_SCRIPT.new(); silo.build_silo(null, 0.0, 160.0); add_child(silo)
-	exhibits.append({"name": "Colossal Basalt Missile Silo", "pos": Vector3(48.0, 24.0, 195.0), "target": Vector3(12.0, 2.0, 165.0)})
+	var silo = SILO_SCRIPT.new(); silo.build_silo(null, 0.0, 300.0); add_child(silo)   # past the floor: 164 m blast ring
+	exhibits.append({"name": "Missile Silo 00", "pos": Vector3(-62.0, 38.0, 405.0), "target": Vector3(0.0, 0.0, 300.0)})
 
 func _place(path: String, pos: Vector3, sc: Vector3, rot_y: float, m1: Material = null, m2: Material = null) -> Node3D:
 	var doc = GLTFDocument.new(); var state = GLTFState.new()

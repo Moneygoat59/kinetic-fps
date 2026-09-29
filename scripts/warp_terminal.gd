@@ -5,7 +5,7 @@ extends StaticBody3D
 @export var prompt_text: String = "Warp to Obstacle Course Trial"
 
 func get_interaction_prompt() -> String:
-	return "[E] " + prompt_text
+	return prompt_text
 
 func interact(_player: Node) -> void:
 	if ResourceLoader.exists(target_scene_path):

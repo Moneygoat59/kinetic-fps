@@ -1,93 +1,141 @@
 class_name NuclearPylon
 extends Node3D
+## A relay mast of the old outpost network. DeadForestEvent lays a chain of them between buildings; the field dosimeter homes
+## in on the active one. The player re-aligns it at its cabinet with [E]: a latch clunks, the lamp stutters while it syncs,
+## then it holds a steady glow and the chain moves on. Once aligned it stays online, so later passes (return trips) clear
+## it just by walking by. The mast's field always keeps stalkers out (BARRIER_RADIUS). Look: RelayView.
+## API kept for DeadForestEvent / RadiationDosimeter / StalkerEnemy: build_pylon, set_station_active, check_player_proximity,
+## is_active, is_cleared, is_barrier_active, BARRIER_RADIUS, station_reached. force_online: RelayHub's corner masts.
 
 signal station_reached(pylon: NuclearPylon)
 
-const METAL_TEX = preload("res://textures/gun_metal_scratched.png")
-static var basalt_tex: ImageTexture; static var basalt_norm: ImageTexture; static var metal_norm: ImageTexture
+enum Relay { DARK, WAITING, SYNCING, ONLINE }
 
-static func _tex(path: String) -> ImageTexture:
-	var img = Image.load_from_file(ProjectSettings.globalize_path(path))
-	return ImageTexture.create_from_image(img) if (img and not img.is_empty()) else null
+const BARRIER_RADIUS: float = 20.0
+const PROMPT_REACH := 3.4                   # m from the mast: prompt shows, [E] works
+const PASS_REACH := 7.0                     # already-aligned relays clear when you pass this close
+const SYNC_TIME := 1.4
+const SINK := 0.05                          # settle the footing into the ground
+## GroundSeat contacts of the relay_pylon model (tools/blender/kit/relay.py): footing rim (0.5 m deep), guy anchors (0.8 m deep)
+const FOOTPRINT: Array[Vector3] = [Vector3(0.85, 0.4, 0), Vector3(-0.85, 0.4, 0), Vector3(0, 0.4, 0.85), Vector3(0, 0.4, -0.85),
+	Vector3(2.771, 0.6, 1.6), Vector3(-2.771, 0.6, 1.6), Vector3(0, 0.6, -3.2)]
+const WAIT_SUB := "OUTPOST NET  //  CARRIER LOST"
+const SYNC_SUB := "HOLD POSITION  //  SYNCING CARRIER"
+const LATCH_SOUND = preload("res://audio/rpg/Audio/metalLatch.ogg")
+const MAX_DELTA := 0.1
 
 @export var station_id: int = 1
 @export var pylon_color: Color = Color(1.0, 0.65, 0.12)
-var is_active: bool = false; var is_cleared: bool = false
-var beacon_light: OmniLight3D; var ring_mat: StandardMaterial3D; var pylon_body: StaticBody3D
+var is_active: bool = false                 # the chain's current target (set by the dosimeter)
+var is_cleared: bool = false                # reached on the current track (the event resets it for return trips)
+var relay: Relay = Relay.DARK
+var _aligned_once := false                  # history, not state: the relay stays online for later passes
+var _sync_t := 0.0
+var _view := RelayView.new()
+var _wait_title := ""                       # built once per relay: offered every frame without allocating
+var _sync_title := ""
+var _sfx: AudioStreamPlayer3D
 
-const BARRIER_RADIUS: float = 20.0
-func is_barrier_active() -> bool: return true
+
+func is_barrier_active() -> bool:
+	return true
+
+
+func _ready() -> void:
+	set_process(relay == Relay.WAITING or relay == Relay.SYNCING)   # Godot enables _process at ready: settle it now
+
+
+func build_pylon(terrain: Node3D, pos_x: float, pos_z: float) -> void:
+	position = Vector3(pos_x, 0.0, pos_z)
+	rotation.y = float(station_id) * 2.39996            # golden-angle turn: neighbours never face the same way
+	settle(terrain)
+	_view.build(self)
+	_wait_title = "RE-ALIGN RELAY %02d" % station_id
+	_sync_title = "ALIGNING RELAY %02d" % station_id
+	_sfx = AudioStreamPlayer3D.new()
+	_sfx.position = Vector3(0.0, 1.5, 0.3)
+	_sfx.unit_size = 4.0
+	_sfx.max_distance = 30.0
+	add_child(_sfx)
+	_apply()
+
+
+func settle(terrain: Node3D) -> void:   # footing + guy anchors into the ground; again after it changes (flat zone laid late)
+	if terrain:
+		position.y = GroundSeat.base_y(terrain, position, rotation.y, FOOTPRINT, SINK)
+
 
 func set_pylon_color(col: Color) -> void:
 	pylon_color = col
-	if ring_mat: ring_mat.albedo_color = col; ring_mat.emission = col
-	if beacon_light: beacon_light.light_color = col
+	_apply()
 
-func build_pylon(terrain: Node3D, pos_x: float, pos_z: float) -> void:
-	if not basalt_tex:
-		basalt_tex = _tex("res://textures/dark_basalt_natural.png")
-		basalt_norm = _tex("res://textures/dark_basalt_normal.png")
-		metal_norm = _tex("res://textures/worn_metal_normal.png")
-	var gy = terrain.get_height(pos_x, pos_z) if terrain else 0.0
-	position = Vector3(pos_x, gy - 0.25, pos_z)
-
-	var c_mat = StandardMaterial3D.new(); c_mat.albedo_texture = basalt_tex; c_mat.albedo_color = Color(0.90, 0.92, 0.98)
-	c_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC; c_mat.uv1_triplanar = true
-	c_mat.uv1_scale = Vector3(0.25, 0.25, 0.25); c_mat.roughness = 0.92
-	if basalt_norm: c_mat.normal_enabled = true; c_mat.normal_texture = basalt_norm; c_mat.normal_scale = 1.2
-
-	var m_mat = StandardMaterial3D.new(); m_mat.albedo_texture = METAL_TEX; m_mat.albedo_color = Color(0.35, 0.38, 0.40)
-	m_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC; m_mat.roughness = 0.7; m_mat.metallic = 0.75
-	if metal_norm: m_mat.normal_enabled = true; m_mat.normal_texture = metal_norm; m_mat.normal_scale = 1.0
-
-	ring_mat = StandardMaterial3D.new(); ring_mat.albedo_color = pylon_color
-	ring_mat.emission_enabled = true; ring_mat.emission = pylon_color; ring_mat.emission_energy_multiplier = 0.0
-
-	# Octagonal basalt base pillar
-	_cylinder(Vector3(0.0, 1.6, 0.0), 0.75, 3.2, 8, c_mat)
-	# Pulsing indicator collar
-	_cylinder(Vector3(0.0, 3.1, 0.0), 0.85, 0.35, 8, ring_mat, false)
-	# Antenna mast and sensor dish
-	_cylinder(Vector3(0.0, 4.0, 0.0), 0.14, 1.6, 8, m_mat)
-	_cylinder(Vector3(0.0, 4.8, 0.0), 0.45, 0.15, 8, m_mat)
-
-	beacon_light = OmniLight3D.new(); beacon_light.position = Vector3(0.0, 4.2, 0.0)
-	beacon_light.light_color = pylon_color; beacon_light.light_energy = 0.0; beacon_light.omni_range = 46.0
-	add_child(beacon_light)
-
-func _cylinder(pos: Vector3, rad: float, h: float, sides: int, mat: Material, col: bool = true) -> void:
-	var mi = MeshInstance3D.new(); var cm = CylinderMesh.new()
-	cm.top_radius = rad; cm.bottom_radius = rad; cm.height = h; cm.radial_segments = sides
-	mi.mesh = cm; mi.position = pos; mi.material_override = mat; add_child(mi)
-	if col:
-		if not pylon_body: pylon_body = StaticBody3D.new(); add_child(pylon_body)
-		var cs = CollisionShape3D.new(); var shape = CylinderShape3D.new()
-		shape.radius = rad; shape.height = h; cs.shape = shape; cs.position = pos; pylon_body.add_child(cs)
 
 func set_station_active(active: bool) -> void:
 	is_active = active
-	if is_active and not is_cleared:
-		beacon_light.light_color = pylon_color
-		ring_mat.emission = pylon_color
-	elif is_cleared:
-		beacon_light.light_color = pylon_color; beacon_light.light_energy = 1.4
-		ring_mat.emission = pylon_color; ring_mat.emission_energy_multiplier = 1.5
-	else:
-		beacon_light.light_energy = 0.0; ring_mat.emission_energy_multiplier = 0.0
+	_apply()
+
+
+## Called every frame by RadiationDosimeter for the active relay. True on the frame it comes online.
+func check_player_proximity(p_pos: Vector3) -> bool:
+	if not is_active or is_cleared:
+		return false
+	var dist := global_position.distance_to(p_pos)
+	if _aligned_once:
+		return dist < PASS_REACH and _complete()
+	var strength := (PROMPT_REACH - dist) / 0.6
+	if relay == Relay.SYNCING:
+		InteractPrompt.offer(self, _sync_title, SYNC_SUB, strength)
+		return _sync_t >= SYNC_TIME and _complete()
+	InteractPrompt.offer(self, _wait_title, WAIT_SUB, strength)
+	if dist < PROMPT_REACH and Input.is_action_just_pressed("interact"):
+		relay = Relay.SYNCING
+		_sync_t = 0.0
+		_play(LATCH_SOUND, -3.0, 0.9)
+	return false
+
+
+## Brought online from elsewhere (Relay Hub 00's router): steady glow now, and later tracks clear it by walking past.
+func force_online() -> void:
+	_aligned_once = true
+	is_cleared = true
+	_apply()
+
+
+func _complete() -> bool:
+	is_cleared = true
+	_aligned_once = true
+	_apply()
+	station_reached.emit(self)
+	return true
+
+
+func _play(stream: AudioStream, volume: float, pitch: float) -> void:
+	_sfx.stream = stream
+	_sfx.volume_db = volume
+	_sfx.pitch_scale = pitch
+	_sfx.play()
+
+
+## Resolve the relay state from the dosimeter's flags and show it.
+func _apply() -> void:
+	if is_cleared or (_aligned_once and not is_active):
+		relay = Relay.ONLINE
+	elif is_active and relay != Relay.SYNCING:
+		relay = Relay.WAITING
+	elif not is_active:
+		relay = Relay.DARK
+	_view.color = pylon_color
+	set_process(relay == Relay.WAITING or relay == Relay.SYNCING)
+	if relay == Relay.ONLINE:
+		_view.show_online()
+	elif relay == Relay.DARK:
+		_view.show_dark()
+
 
 func _process(delta: float) -> void:
-	if is_active and not is_cleared and beacon_light:
-		var pulse = (sin(Time.get_ticks_msec() * 0.007) + 1.0) * 0.5
-		beacon_light.light_energy = lerpf(1.5, 6.0, pulse)
-		beacon_light.omni_range = lerpf(24.0, 46.0, pulse)
-		if ring_mat: ring_mat.emission_energy_multiplier = lerpf(2.0, 7.0, pulse)
-
-func check_player_proximity(p_pos: Vector3) -> bool:
-	if not is_active or is_cleared: return false
-	if global_position.distance_to(p_pos) < 7.0:
-		is_cleared = true
-		beacon_light.light_color = pylon_color; beacon_light.light_energy = 1.4
-		if ring_mat: ring_mat.emission = pylon_color; ring_mat.emission_energy_multiplier = 1.5
-		station_reached.emit(self)
-		return true
-	return false
+	var t := Time.get_ticks_msec() * 0.001
+	if relay == Relay.WAITING:
+		_view.show_waiting(t)
+	elif relay == Relay.SYNCING:
+		_sync_t += clampf(delta, 0.0, MAX_DELTA)
+		_view.show_syncing(t, clampf(_sync_t / SYNC_TIME, 0.0, 1.0))

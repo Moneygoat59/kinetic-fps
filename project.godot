@@ -12,13 +12,58 @@ config_version=5
 
 config/name="KINETIC"
 config/description="Retro Movement FPS Prototype"
-run/main_scene="res://scenes/levels/dead_forest.tscn"
+run/main_scene="res://scenes/levels/apartment.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 DevTools="*res://scripts/dev/dev_tools.gd"
+LevelFlow="*res://scripts/level_flow.gd"
 
 [display]
 

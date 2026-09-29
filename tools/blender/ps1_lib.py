@@ -201,9 +201,10 @@ def emissive_decal_material(name, image_path, strength=1.5):
 
 
 def quad(name, center, w, h, facing, mat, up=(0, 0, 1)):
-    """Single quad facing an axis direction ('+x','-x','+y','-y','+z','-z'), UV 0..1 (image top = `up`).
-    Used for screens and decals; the image is upright and unmirrored when viewed from the facing side."""
-    n = Vector({"+x": (1, 0, 0), "-x": (-1, 0, 0), "+y": (0, 1, 0), "-y": (0, -1, 0), "+z": (0, 0, 1), "-z": (0, 0, -1)}[facing])
+    """Single quad facing an axis direction ('+x','-x','+y','-y','+z','-z') or any normal vector (x, y, z), UV 0..1
+    (image top = `up`). Used for screens and decals; the image is upright and unmirrored when viewed from the facing side."""
+    axes = {"+x": (1, 0, 0), "-x": (-1, 0, 0), "+y": (0, 1, 0), "-y": (0, -1, 0), "+z": (0, 0, 1), "-z": (0, 0, -1)}
+    n = Vector(axes[facing]) if isinstance(facing, str) else Vector(facing).normalized()
     upv = Vector(up)
     if abs(n.dot(upv)) > 0.99:      # floor/ceiling quads: image top points along +Y unless told otherwise
         upv = Vector((0, 1, 0))
@@ -260,6 +261,57 @@ def prism(name, pts_xz, depth, loc=(0, 0, 0), mat=None, plane="xz"):
     if mat:
         me.materials.append(mat)
     return o
+
+
+def vprism(name, pts_xy, z0, z1, mat=None):
+    """Vertical prism: polygon drawn in the XY plane (list of (x,y)) extruded from z0 up to z1 (slabs, boolean cutters)."""
+    n = len(pts_xy)
+    verts = [(x, y, z0) for x, y in pts_xy] + [(x, y, z1) for x, y in pts_xy]
+    faces = [list(range(n))[::-1], list(range(n, 2 * n))]
+    for i in range(n):
+        j = (i + 1) % n
+        faces.append([i, j, n + j, n + i])
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(verts, [], faces)
+    me.update()
+    o = bpy.data.objects.new(name, me)
+    bpy.context.collection.objects.link(o)
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(me)
+    bm.free()
+    if mat:
+        me.materials.append(mat)
+    return o
+
+
+def cut(obj, cutter):
+    """Boolean-subtract `cutter` from `obj` (exact solver), then delete the cutter. Cut faces stay sharp: broken concrete."""
+    mod = obj.modifiers.new("cut", "BOOLEAN")
+    mod.operation = "DIFFERENCE"
+    mod.object = cutter
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    bpy.data.objects.remove(cutter, do_unlink=True)
+    return obj
+
+
+def open_cone(name, r1, r2, depth, loc=(0, 0, 0), mat=None, verts=12):
+    """Cone without end caps (dish bowls, funnels, rim bands). glTF exports it double-sided."""
+    bpy.ops.mesh.primitive_cone_add(vertices=verts, radius1=r1, radius2=r2, depth=depth, location=loc, end_fill_type="NOTHING")
+    return _finish(bpy.context.active_object, name, mat)
+
+
+def rotate_about(objs, pivot, rot_deg):
+    """Rigidly rotate already-placed objects about a world-space pivot (sagging dish, toppled parts)."""
+    from mathutils import Euler, Matrix
+    r = Euler([math.radians(a) for a in rot_deg]).to_matrix().to_4x4()
+    m = Matrix.Translation(Vector(pivot)) @ r @ Matrix.Translation(-Vector(pivot))
+    for o in objs:
+        o.matrix_world = m @ o.matrix_world
 
 
 def arch_pts(w, top, chamfer, base=0.25):
@@ -354,3 +406,52 @@ def ramp(name, x0, x1, y0, y1, z_bottom, z_at_y0, z_at_y1, mat=None):
     if mat:
         me.materials.append(mat)
     return o
+
+
+# ---------------------------------------------------------------- fast primitives (no bpy.ops)
+# bpy.ops primitive adds slow down as a scene fills up; big generators (missile_silo.py: thousands of parts) build meshes
+# with bmesh instead. Geometry is baked in world space (object transform = identity), so set the pose through the args.
+def _bm_object(name, bm, mat):
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new(name, me)
+    bpy.context.collection.objects.link(o)
+    if mat is not None:
+        me.materials.append(mat)
+    return o
+
+
+def _place(bm, loc, rot_deg=(0, 0, 0), quat=None):
+    from mathutils import Euler, Matrix
+    r = quat.to_matrix().to_4x4() if quat is not None else Euler([math.radians(a) for a in rot_deg]).to_matrix().to_4x4()
+    bmesh.ops.transform(bm, matrix=Matrix.Translation(Vector(loc)) @ r, verts=bm.verts)
+
+
+def fast_box(name, size, loc=(0, 0, 0), mat=None, rot_deg=(0, 0, 0), chamfer=0.0):
+    """Like box (+ chamfer_box when chamfer > 0), built with bmesh. size = (x, y, z), loc = centre."""
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1.0)
+    bmesh.ops.scale(bm, vec=Vector(size), verts=bm.verts)
+    if chamfer > 0:
+        bmesh.ops.bevel(bm, geom=list(bm.verts) + list(bm.edges), offset=chamfer, segments=1, affect="EDGES", profile=0.5)
+    _place(bm, loc, rot_deg)
+    return _bm_object(name, bm, mat)
+
+
+def fast_cylinder(name, radius, depth, loc=(0, 0, 0), mat=None, verts=8, rot_deg=(0, 0, 0)):
+    """Like cylinder (axis along local Z before rot_deg), built with bmesh."""
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=verts, radius1=radius, radius2=radius, depth=depth)
+    _place(bm, loc, rot_deg)
+    return _bm_object(name, bm, mat)
+
+
+def fast_tube(name, p0, p1, r, mat=None, verts=8):
+    """Like ps1_ao.tube (cylinder between two points), built with bmesh."""
+    a, b = Vector(p0), Vector(p1)
+    d = b - a
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=verts, radius1=r, radius2=r, depth=max(d.length, 1e-4))
+    _place(bm, (a + b) / 2, quat=d.to_track_quat("Z", "Y"))
+    return _bm_object(name, bm, mat)

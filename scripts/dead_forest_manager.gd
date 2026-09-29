@@ -12,6 +12,9 @@ const LAND_SOUND = preload("res://audio/impacts/Audio/impactSoft_heavy_000.ogg")
 const STEP_L = preload("res://audio/impacts/Audio/footstep_snow_000.ogg")
 const BED_SCRIPT = preload("res://scripts/start_bed.gd")
 const FONT_LIB = preload("res://scripts/ui/font_library.gd")
+const DIRECTOR = preload("res://scripts/world/forest_night_director.gd")
+const FALL_Y := -30.0   # below this (or below a hole's own floor) a fall resets to spawn_point
+const VIEW_PAST_FOG := 1.5   # camera far = fog end x this: the fog is opaque from its end on, so nothing past it is drawn
 
 const GUSTS: Array[AudioStream] = [
 	preload("res://audio/ambient/wind_gust_1.wav"),
@@ -32,27 +35,44 @@ var gust_timer: float = 5.0
 var bed_instance: Node3D
 var is_dropping: bool = false
 var drop_timer: float = 0.0
+var night: Dictionary = {}   # ForestNights.spec of tonight (which ambience, whether the buildings come, how it ends)
 
 func _ready() -> void:
+	night = ForestNights.spec(ForestNights.current(get_tree()))
 	_init_audio()
 	_init_world()
+	_apply_night()
 	_setup_wake_sequence()
+	var guard := FallGuard.new()                         # a jump into the silo bore lands on its floor: reset it like a fall out
+	guard.name = "FallGuard"
+	guard.setup(player)
+	add_child(guard)
+	guard.hard_landing.connect(_on_hard_landing)
+
+func _apply_night() -> void:
+	var ev = get_node_or_null("DeadForestEvent")
+	if ev and not night["event"]: ev.process_mode = Node.PROCESS_MODE_DISABLED   # nothing gets built tonight
+	var director = DIRECTOR.new(); director.name = "NightDirector"
+	director.setup(player, terrain, night); add_child(director)
 
 func _init_audio() -> void:
 	wind_player = AudioStreamPlayer.new(); wind_player.name = "WindBasePlayer"
 	wind_player.stream = WIND_BASE; wind_player.volume_db = -9.0
-	add_child(wind_player); wind_player.play()
+	add_child(wind_player)
+	if night["wind"]: wind_player.play()
 
 	wind_layer_player = AudioStreamPlayer.new(); wind_layer_player.name = "WindLayerPlayer"
 	wind_layer_player.stream = WIND_LAYER; wind_layer_player.volume_db = -15.0
-	wind_layer_player.pitch_scale = 0.92; add_child(wind_layer_player); wind_layer_player.play()
+	wind_layer_player.pitch_scale = 0.92; add_child(wind_layer_player)
+	if night["wind"]: wind_layer_player.play()
 
 	gust_player = AudioStreamPlayer.new(); gust_player.name = "WindGustPlayer"
 	gust_player.volume_db = -32.0; add_child(gust_player)
 
-	music_player = AudioStreamPlayer.new(); music_player.name = "MusicPlayer"
+	music_player = AudioStreamPlayer.new(); music_player.name = "MusicPlayer"; music_player.add_to_group(&"music")   # MusicZone fades it out at the silo
 	music_player.stream = MUSIC_STREAM; music_player.volume_db = -14.0
-	add_child(music_player); music_player.play()
+	add_child(music_player)
+	if night["music"]: music_player.play()
 
 func _process(delta: float) -> void:
 	gust_timer -= delta
@@ -61,7 +81,7 @@ func _process(delta: float) -> void:
 		_trigger_wind_gust()
 
 func _trigger_wind_gust() -> void:
-	if not gust_player: return
+	if not gust_player or not night["wind"]: return
 	var stream = GUSTS[randi() % GUSTS.size()]
 	gust_player.stream = stream
 	gust_player.pitch_scale = randf_range(0.88, 1.12)
@@ -95,6 +115,9 @@ func _init_world() -> void:
 	spawn_point = Vector3(side_x, ground_y + 0.95, 0.0)
 	var drop_pos = Vector3(side_x, ground_y + 2.3, 0.0)
 
+	var world_env = get_node_or_null("WorldEnvironment") as WorldEnvironment
+	if player and player.camera and world_env and world_env.environment and world_env.environment.fog_enabled:
+		player.camera.far = world_env.environment.fog_depth_end * VIEW_PAST_FOG
 	if player:
 		if player.has_method("enable_walk_mode"): player.enable_walk_mode()
 		player.global_position = drop_pos
@@ -145,6 +168,7 @@ func _run_wake_tween() -> void:
 	seq.tween_callback(Callable(self, "_trigger_drop_and_reveal"))
 
 func _trigger_drop_and_reveal() -> void:
+	if not is_instance_valid(wake_overlay): return   # the wake-up was skipped (a dev teleport, DevPlaces.stand)
 	is_dropping = true
 	drop_timer = 2.0
 	if player:
@@ -175,7 +199,20 @@ func _physics_process(delta: float) -> void:
 
 		if terrain and terrain.has_method("update_player_pos"):
 			terrain.update_player_pos(player.global_position)
-		if player.global_position.y < -30.0:
-			player.global_position = spawn_point
-			player.velocity = Vector3.ZERO
-			if player.has_method("reset_for_respawn"): player.reset_for_respawn()
+		var p_pos = player.global_position   # holes (the silo bore) go deeper than FALL_Y: ask the terrain only once below it
+		if p_pos.y < FALL_Y and (not terrain or p_pos.y < terrain.get_kill_y(p_pos.x, p_pos.z, FALL_Y)):
+			_reset_fall()
+
+
+func _reset_fall() -> void:
+	player.global_position = spawn_point
+	player.velocity = Vector3.ZERO
+	if player.has_method("reset_for_respawn"):
+		player.reset_for_respawn()
+
+
+## FallGuard: a landing no one survives, inside a pit (a terrain hole: the silo bore) resets like falling out of the world.
+func _on_hard_landing(_speed: float) -> void:
+	var p := player.global_position
+	if terrain and terrain.get_kill_y(p.x, p.z, FALL_Y) < FALL_Y:
+		_reset_fall()
