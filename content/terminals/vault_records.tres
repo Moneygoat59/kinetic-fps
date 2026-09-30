@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="TerminalDrive" format=3]
+
+[ext_resource type="Script" path="res://scripts/terminal/terminal_entry.gd" id="1_eem42"]
+[ext_resource type="Script" path="res://scripts/terminal/terminal_file.gd" id="2_mphrq"]
+[ext_resource type="Script" path="res://scripts/terminal/terminal_folder.gd" id="3_bmk4v"]
+[ext_resource type="Script" path="res://scripts/terminal/terminal_drive.gd" id="4_tic6n"]
+
+[sub_resource type="Resource" id="Resource_vr_readme"]
+script = ExtResource("2_mphrq")
+body = "[b]PLACEHOLDER DRIVE[/b]
+
+The records vault's console (the tape cage). It is wired up; its contents are not written yet.
+
+The folders follow the vault's three zones: DRAWINGS (the plan chests and the pinned sheets), FILES (the stacks and cabinets), TAPES (the tape cabinets in this cage).
+
+Edit res://content/terminals/vault_records.tres in the Godot inspector or as text."
+name = "README.TXT"
+meta = "PLACEHOLDER"
+
+[sub_resource type="Resource" id="Resource_vr_drawings"]
+script = ExtResource("3_bmk4v")
+name = "DRAWINGS"
+
+[sub_resource type="Resource" id="Resource_vr_files"]
+script = ExtResource("3_bmk4v")
+name = "FILES"
+
+[sub_resource type="Resource" id="Resource_vr_tapes"]
+script = ExtResource("3_bmk4v")
+name = "TAPES"
+
+[resource]
+script = ExtResource("4_tic6n")
+title = "LINE 00 // RECORDS"
+entries = Array[ExtResource("1_eem42")]([SubResource("Resource_vr_readme"), SubResource("Resource_vr_drawings"), SubResource("Resource_vr_files"), SubResource("Resource_vr_tapes")])
+name = "RECORDS"

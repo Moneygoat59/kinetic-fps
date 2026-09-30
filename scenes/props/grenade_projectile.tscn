@@ -1,10 +1,11 @@
 [gd_scene load_steps=10 format=3 uid="uid://c8grenade1234"]
 
 [ext_resource type="Script" path="res://scripts/grenade_projectile.gd" id="1_grenade"]
+[ext_resource type="PackedScene" uid="uid://cfjbmqi7uilg5" path="res://models/kenney_blasters/grenade-a.glb" id="2_grenade_mesh"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_bouncy"]
-friction = 0.5
-bounce = 0.55
+friction = 0.88
+bounce = 0.12
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_1"]
 radius = 0.18
@@ -56,18 +57,8 @@ script = ExtResource("1_grenade")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("SphereShape3D_1")
 
-[node name="GrenadeBody" type="MeshInstance3D" parent="."]
-mesh = SubResource("CylinderMesh_body")
-surface_material_override/0 = SubResource("StandardMaterial3D_body")
-
-[node name="Stripe" type="MeshInstance3D" parent="."]
-mesh = SubResource("CylinderMesh_stripe")
-surface_material_override/0 = SubResource("StandardMaterial3D_stripe")
-
-[node name="Cap" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16, 0)
-mesh = SubResource("CylinderMesh_cap")
-surface_material_override/0 = SubResource("StandardMaterial3D_cap")
+[node name="GrenadeModel" parent="." instance=ExtResource("2_grenade_mesh")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.12, 0)
 
 [node name="SparkLight" type="OmniLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.22, 0)

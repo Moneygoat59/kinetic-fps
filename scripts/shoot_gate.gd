@@ -14,6 +14,7 @@ func register_target_hit() -> void:
 
 func open_gate() -> void:
 	is_open = true
+	SoundManager.play_spatial(AudioBank.GATE_OPEN, global_position, 2.0)
 	if door_node:
 		var tween = create_tween()
 		tween.tween_property(door_node, "position:y", door_node.position.y + 7.0, 1.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)

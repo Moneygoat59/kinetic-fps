@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/silo/missile_silo.gd" id="1_mn10w"]
+
+[node name="root" type="Node3D" unique_id=1716202462]
+script = ExtResource("1_mn10w")

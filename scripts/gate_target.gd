@@ -10,6 +10,7 @@ func take_hit(_damage: float, _normal: Vector3, _point: Vector3) -> void:
 	if not is_active:
 		return
 	is_active = false
+	SoundManager.play_spatial(AudioBank.GATE_TARGET, global_position, 1.0)
 	
 	var mesh = get_node_or_null("MeshInstance3D")
 	if mesh:

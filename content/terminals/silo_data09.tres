@@ -1,0 +1,93 @@
+[gd_resource type="Resource" script_class="TerminalDrive" format=3]
+
+[ext_resource type="Script" path="res://scripts/terminal/terminal_entry.gd" id="1_eem42"]
+[ext_resource type="Script" path="res://scripts/terminal/terminal_file.gd" id="2_mphrq"]
+[ext_resource type="Script" path="res://scripts/terminal/terminal_folder.gd" id="3_bmk4v"]
+[ext_resource type="Script" path="res://scripts/terminal/terminal_drive.gd" id="4_tic6n"]
+
+[sub_resource type="Resource" id="Resource_ihdx2"]
+script = ExtResource("2_mphrq")
+body = "[b]PLACEHOLDER DRIVE[/b]
+
+This terminal is wired up; its contents are not written yet.
+
+Edit res://content/terminals/silo_data09.tres in the Godot inspector (or as text): the drive's Entries hold TerminalFolder and TerminalFile resources. A folder lists its own Entries; a file shows its Body here, with BBCode ([b]bold[/b], [color=#ff6a3a]colour[/color]).
+
+Name = the listing line, Meta = the right-hand column (a date, a size). Files you have not opened yet carry a * in the listing."
+name = "README.TXT"
+meta = "PLACEHOLDER"
+
+[sub_resource type="Resource" id="Resource_orgga"]
+script = ExtResource("2_mphrq")
+body = "An example file inside a folder.
+
+Backspace or < BACK returns to the folder."
+name = "EXAMPLE_A.TXT"
+meta = "0412"
+
+[sub_resource type="Resource" id="Resource_8uuqd"]
+script = ExtResource("2_mphrq")
+body = "A long example page, to try scrolling (mouse wheel, arrows, Page Up / Down).
+
+PLACEHOLDER LINE 01
+PLACEHOLDER LINE 02
+PLACEHOLDER LINE 03
+PLACEHOLDER LINE 04
+PLACEHOLDER LINE 05
+PLACEHOLDER LINE 06
+PLACEHOLDER LINE 07
+PLACEHOLDER LINE 08
+PLACEHOLDER LINE 09
+PLACEHOLDER LINE 10
+PLACEHOLDER LINE 11
+PLACEHOLDER LINE 12
+PLACEHOLDER LINE 13
+PLACEHOLDER LINE 14
+PLACEHOLDER LINE 15
+PLACEHOLDER LINE 16
+PLACEHOLDER LINE 17
+PLACEHOLDER LINE 18
+PLACEHOLDER LINE 19
+PLACEHOLDER LINE 20
+PLACEHOLDER LINE 21
+PLACEHOLDER LINE 22
+PLACEHOLDER LINE 23
+PLACEHOLDER LINE 24
+PLACEHOLDER LINE 25
+PLACEHOLDER LINE 26
+PLACEHOLDER LINE 27
+PLACEHOLDER LINE 28
+PLACEHOLDER LINE 29
+PLACEHOLDER LINE 30
+PLACEHOLDER LINE 31
+PLACEHOLDER LINE 32
+PLACEHOLDER LINE 33
+PLACEHOLDER LINE 34
+PLACEHOLDER LINE 35
+PLACEHOLDER LINE 36
+PLACEHOLDER LINE 37
+PLACEHOLDER LINE 38
+PLACEHOLDER LINE 39
+PLACEHOLDER LINE 40"
+name = "EXAMPLE_B.TXT"
+meta = "LONG"
+
+[sub_resource type="Resource" id="Resource_yci7r"]
+script = ExtResource("3_bmk4v")
+entries = Array[ExtResource("1_eem42")]([SubResource("Resource_8uuqd")])
+name = "NESTED"
+
+[sub_resource type="Resource" id="Resource_elpgm"]
+script = ExtResource("3_bmk4v")
+entries = Array[ExtResource("1_eem42")]([SubResource("Resource_orgga"), SubResource("Resource_yci7r")])
+name = "EXAMPLE_FOLDER"
+
+[sub_resource type="Resource" id="Resource_8cjun"]
+script = ExtResource("3_bmk4v")
+name = "EMPTY_FOLDER"
+
+[resource]
+script = ExtResource("4_tic6n")
+title = "DATA 09 // NODE CONSOLE"
+entries = Array[ExtResource("1_eem42")]([SubResource("Resource_ihdx2"), SubResource("Resource_elpgm"), SubResource("Resource_8cjun")])
+name = "DATA09"

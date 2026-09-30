@@ -1,0 +1,37 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://cfb4rr3f4nkti"
+path="res://.godot/imported/BlockChain_Tower_02_Art_BC_CodeBush_Trans.png-808f92c4dec1274a0f25ae790c29895a.ctex"
+metadata={
+"vram_texture": false
+}
+generator_parameters={
+"md5": "fefc7a616ee1c4b0594c83e382a2654b"
+}
+
+[deps]
+
+source_file="res://models/curated_cc0/BlockChain_Tower_02_Art_BC_CodeBush_Trans.png"
+dest_files=["res://.godot/imported/BlockChain_Tower_02_Art_BC_CodeBush_Trans.png-808f92c4dec1274a0f25ae790c29895a.ctex"]
+
+[params]
+
+compress/mode=0
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1

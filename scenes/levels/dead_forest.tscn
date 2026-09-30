@@ -1,0 +1,60 @@
+[gd_scene load_steps=6 format=3 uid="uid://c8deadforestlevel"]
+
+[ext_resource type="Script" path="res://scripts/dead_forest_manager.gd" id="1_dfm"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scripts/dead_forest_terrain.gd" id="3_terrain"]
+[ext_resource type="Script" path="res://scripts/dead_forest_props.gd" id="4_props"]
+[ext_resource type="Script" path="res://scripts/concrete_facility.gd" id="6_facility"]
+[ext_resource type="Script" path="res://scripts/dead_forest_event.gd" id="5_event"]
+
+[sub_resource type="Environment" id="Environment_deadforest"]
+background_mode = 1
+background_color = Color(0.70, 0.73, 0.76, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.35, 0.38, 0.42, 1)
+ambient_light_energy = 0.85
+fog_enabled = true
+fog_mode = 1
+fog_light_color = Color(0.70, 0.73, 0.76, 1)
+fog_depth_begin = 8.0
+fog_depth_end = 45.0
+fog_depth_curve = 1.1
+fog_aerial_perspective = 0.0
+fog_sky_affect = 1.0
+
+[node name="DeadForest" type="Node3D" node_paths=PackedStringArray("terrain", "props", "player")]
+script = ExtResource("1_dfm")
+terrain = NodePath("DeadForestTerrain")
+props = NodePath("DeadForestProps")
+player = NodePath("Player")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_deadforest")
+
+[node name="Moonlight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.819152, -0.40558, 0.40558, 0, 0.707107, 0.707107, -0.573576, -0.579228, 0.579228, 0, 40, 0)
+light_color = Color(0.82, 0.86, 0.90, 1)
+light_energy = 0.95
+shadow_enabled = true
+directional_shadow_max_distance = 45.0
+shadow_bias = 0.04
+
+[node name="Moonlight_Fill" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.642788, 0.296198, -0.706434, 0, 0.922154, 0.386819, 0.766044, 0.248641, -0.592751, 0, 25, 0)
+light_color = Color(0.48, 0.52, 0.58, 1)
+light_energy = 0.40
+
+[node name="DeadForestTerrain" type="Node3D" parent="."]
+script = ExtResource("3_terrain")
+
+[node name="DeadForestProps" type="Node3D" parent="."]
+script = ExtResource("4_props")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+
+[node name="DeadForestEvent" type="Node3D" parent="." node_paths=PackedStringArray("player", "terrain", "props")]
+script = ExtResource("5_event")
+player = NodePath("../Player")
+terrain = NodePath("../DeadForestTerrain")
+props = NodePath("../DeadForestProps")

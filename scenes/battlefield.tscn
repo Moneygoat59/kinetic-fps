@@ -1,0 +1,337 @@
+[gd_scene load_steps=22 format=3 uid="uid://c8field1234"]
+
+[ext_resource type="Script" path="res://scripts/battlefield_manager.gd" id="1_bm"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/drone_enemy.tscn" id="3_drone"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/mech_enemy.tscn" id="4_mech"]
+[ext_resource type="PackedScene" path="res://scenes/props/jump_pad.tscn" id="5_jumppad"]
+[ext_resource type="PackedScene" path="res://scenes/props/warp_terminal.tscn" id="6_warp"]
+
+[sub_resource type="Environment" id="Environment_field"]
+background_mode = 1
+background_color = Color(0.04, 0.05, 0.08, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.2, 0.22, 0.28, 1)
+ambient_light_energy = 0.9
+fog_enabled = true
+fog_light_color = Color(0.05, 0.07, 0.1, 1)
+fog_density = 0.005
+fog_aerial_perspective = 0.4
+
+[sub_resource type="StandardMaterial3D" id="Mat_floor"]
+albedo_color = Color(0.12, 0.14, 0.18, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="Mat_perimeter"]
+albedo_color = Color(0.18, 0.2, 0.24, 1)
+metallic = 0.6
+roughness = 0.5
+
+[sub_resource type="StandardMaterial3D" id="Mat_bunker"]
+albedo_color = Color(0.22, 0.25, 0.3, 1)
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="Mat_ramp"]
+albedo_color = Color(0.28, 0.22, 0.18, 1)
+roughness = 0.5
+
+[sub_resource type="StandardMaterial3D" id="Mat_crane"]
+albedo_color = Color(0.85, 0.65, 0.1, 1)
+metallic = 0.8
+roughness = 0.4
+
+[sub_resource type="StandardMaterial3D" id="Mat_crane_glow"]
+albedo_color = Color(0.1, 0.9, 0.3, 1)
+emission_enabled = true
+emission = Color(0.1, 0.9, 0.3, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="StandardMaterial3D" id="Mat_barrier"]
+albedo_color = Color(0.8, 0.25, 0.15, 1)
+emission_enabled = true
+emission = Color(0.8, 0.25, 0.15, 1)
+emission_energy_multiplier = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Mat_container"]
+albedo_color = Color(0.15, 0.35, 0.5, 1)
+roughness = 0.4
+
+[sub_resource type="StandardMaterial3D" id="Mat_beacon"]
+albedo_color = Color(0.1, 0.8, 1.0, 1)
+emission_enabled = true
+emission = Color(0.1, 0.8, 1.0, 1)
+emission_energy_multiplier = 2.5
+
+[node name="Battlefield" type="Node3D"]
+script = ExtResource("1_bm")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_field")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 45, 0)
+light_color = Color(0.92, 0.95, 1, 1)
+light_energy = 1.0
+shadow_enabled = true
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 56)
+
+[node name="Geometry" type="Node3D" parent="."]
+
+[node name="MainFloor" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+use_collision = true
+size = Vector3(150, 1, 150)
+material = SubResource("Mat_floor")
+
+[node name="WallNorth" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, -75)
+use_collision = true
+size = Vector3(152, 16, 2)
+material = SubResource("Mat_perimeter")
+
+[node name="WallSouth" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, 75)
+use_collision = true
+size = Vector3(152, 16, 2)
+material = SubResource("Mat_perimeter")
+
+[node name="WallWest" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75, 8, 0)
+use_collision = true
+size = Vector3(2, 16, 152)
+material = SubResource("Mat_perimeter")
+
+[node name="WallEast" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 8, 0)
+use_collision = true
+size = Vector3(2, 16, 152)
+material = SubResource("Mat_perimeter")
+
+[node name="CentralFortress" type="Node3D" parent="Geometry"]
+
+[node name="BunkerFloor1_Roof" type="CSGBox3D" parent="Geometry/CentralFortress"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, 0)
+use_collision = true
+size = Vector3(32, 1, 32)
+material = SubResource("Mat_bunker")
+
+[node name="PillarNW" type="CSGBox3D" parent="Geometry/CentralFortress"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 2.5, -14)
+use_collision = true
+size = Vector3(3, 5, 3)
+material = SubResource("Mat_bunker")
+
+[node name="PillarNE" type="CSGBox3D" parent="Geometry/CentralFortress"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 2.5, -14)
+use_collision = true
+size = Vector3(3, 5, 3)
+material = SubResource("Mat_bunker")
+
+[node name="PillarSW" type="CSGBox3D" parent="Geometry/CentralFortress"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 2.5, 14)
+use_collision = true
+size = Vector3(3, 5, 3)
+material = SubResource("Mat_bunker")
+
+[node name="PillarSE" type="CSGBox3D" parent="Geometry/CentralFortress"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 2.5, 14)
+use_collision = true
+size = Vector3(3, 5, 3)
+material = SubResource("Mat_bunker")
+
+[node name="CenterTower" type="CSGBox3D" parent="Geometry/CentralFortress"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 9.5, 0)
+use_collision = true
+size = Vector3(12, 7, 12)
+material = SubResource("Mat_bunker")
+
+[node name="TowerGrappleRing" type="CSGBox3D" parent="Geometry/CentralFortress/CenterTower"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.8, 0)
+size = Vector3(14, 0.6, 14)
+material = SubResource("Mat_crane_glow")
+
+[node name="SouthRamp" type="CSGBox3D" parent="Geometry/CentralFortress"]
+transform = Transform3D(1, 0, 0, 0, 0.939693, 0.34202, 0, -0.34202, 0.939693, 0, 2.7, 24)
+use_collision = true
+size = Vector3(8, 0.8, 17)
+material = SubResource("Mat_ramp")
+
+[node name="NorthRamp" type="CSGBox3D" parent="Geometry/CentralFortress"]
+transform = Transform3D(1, 0, 0, 0, 0.939693, -0.34202, 0, 0.34202, 0.939693, 0, 2.7, -24)
+use_collision = true
+size = Vector3(8, 0.8, 17)
+material = SubResource("Mat_ramp")
+
+[node name="AerialCraneNetwork" type="Node3D" parent="Geometry"]
+
+[node name="MainCraneNS" type="CSGBox3D" parent="Geometry/AerialCraneNetwork"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 21, 0)
+use_collision = true
+size = Vector3(5, 2, 90)
+material = SubResource("Mat_crane")
+
+[node name="MainCraneNS_Glow" type="CSGBox3D" parent="Geometry/AerialCraneNetwork/MainCraneNS"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
+size = Vector3(3.5, 0.4, 86)
+material = SubResource("Mat_crane_glow")
+
+[node name="CrossCraneEW" type="CSGBox3D" parent="Geometry/AerialCraneNetwork"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 23.5, 0)
+use_collision = true
+size = Vector3(90, 2, 5)
+material = SubResource("Mat_crane")
+
+[node name="CrossCraneEW_Glow" type="CSGBox3D" parent="Geometry/AerialCraneNetwork/CrossCraneEW"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
+size = Vector3(86, 0.4, 3.5)
+material = SubResource("Mat_crane_glow")
+
+[node name="DiagonalCraneNW" type="CSGBox3D" parent="Geometry/AerialCraneNetwork"]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, -35, 19, -35)
+use_collision = true
+size = Vector3(4, 2, 34)
+material = SubResource("Mat_crane")
+
+[node name="DiagonalCraneNW_Glow" type="CSGBox3D" parent="Geometry/AerialCraneNetwork/DiagonalCraneNW"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
+size = Vector3(2.5, 0.4, 30)
+material = SubResource("Mat_crane_glow")
+
+[node name="DiagonalCraneNE" type="CSGBox3D" parent="Geometry/AerialCraneNetwork"]
+transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, 35, 19, -35)
+use_collision = true
+size = Vector3(4, 2, 34)
+material = SubResource("Mat_crane")
+
+[node name="DiagonalCraneNE_Glow" type="CSGBox3D" parent="Geometry/AerialCraneNetwork/DiagonalCraneNE"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
+size = Vector3(2.5, 0.4, 30)
+material = SubResource("Mat_crane_glow")
+
+[node name="DiagonalCraneSW" type="CSGBox3D" parent="Geometry/AerialCraneNetwork"]
+transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, -35, 19, 35)
+use_collision = true
+size = Vector3(4, 2, 34)
+material = SubResource("Mat_crane")
+
+[node name="DiagonalCraneSW_Glow" type="CSGBox3D" parent="Geometry/AerialCraneNetwork/DiagonalCraneSW"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
+size = Vector3(2.5, 0.4, 30)
+material = SubResource("Mat_crane_glow")
+
+[node name="DiagonalCraneSE" type="CSGBox3D" parent="Geometry/AerialCraneNetwork"]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 35, 19, 35)
+use_collision = true
+size = Vector3(4, 2, 34)
+material = SubResource("Mat_crane")
+
+[node name="DiagonalCraneSE_Glow" type="CSGBox3D" parent="Geometry/AerialCraneNetwork/DiagonalCraneSE"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
+size = Vector3(2.5, 0.4, 30)
+material = SubResource("Mat_crane_glow")
+
+[node name="CoverAndObstacles" type="Node3D" parent="Geometry"]
+
+[node name="Container1" type="CSGBox3D" parent="Geometry/CoverAndObstacles"]
+transform = Transform3D(0.965926, 0, 0.258819, 0, 1, 0, -0.258819, 0, 0.965926, -26, 1.5, -12)
+use_collision = true
+size = Vector3(4, 3, 10)
+material = SubResource("Mat_container")
+
+[node name="Container2" type="CSGBox3D" parent="Geometry/CoverAndObstacles"]
+transform = Transform3D(0.866025, 0, -0.5, 0, 1, 0, 0.5, 0, 0.866025, 28, 1.5, -10)
+use_collision = true
+size = Vector3(4, 3, 10)
+material = SubResource("Mat_container")
+
+[node name="Container3" type="CSGBox3D" parent="Geometry/CoverAndObstacles"]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, -24, 1.5, 24)
+use_collision = true
+size = Vector3(4, 3, 10)
+material = SubResource("Mat_container")
+
+[node name="Container4" type="CSGBox3D" parent="Geometry/CoverAndObstacles"]
+transform = Transform3D(0.965926, 0, -0.258819, 0, 1, 0, 0.258819, 0, 0.965926, 25, 1.5, 26)
+use_collision = true
+size = Vector3(4, 3, 10)
+material = SubResource("Mat_container")
+
+[node name="SlideBulkhead1" type="CSGBox3D" parent="Geometry/CoverAndObstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 42)
+use_collision = true
+size = Vector3(18, 2.4, 1.5)
+material = SubResource("Mat_barrier")
+
+[node name="SlideBulkhead2" type="CSGBox3D" parent="Geometry/CoverAndObstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, -42)
+use_collision = true
+size = Vector3(18, 2.4, 1.5)
+material = SubResource("Mat_barrier")
+
+[node name="BarricadeWest" type="CSGBox3D" parent="Geometry/CoverAndObstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45, 1.2, 0)
+use_collision = true
+size = Vector3(2, 2.4, 22)
+material = SubResource("Mat_barrier")
+
+[node name="BarricadeEast" type="CSGBox3D" parent="Geometry/CoverAndObstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 1.2, 0)
+use_collision = true
+size = Vector3(2, 2.4, 22)
+material = SubResource("Mat_barrier")
+
+[node name="JumpPads" type="Node3D" parent="."]
+
+[node name="JumpPadNW" parent="JumpPads" instance=ExtResource("5_jumppad")]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, -50, 0, -50)
+launch_velocity = Vector3(20, 22, 20)
+
+[node name="JumpPadNE" parent="JumpPads" instance=ExtResource("5_jumppad")]
+transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, 50, 0, -50)
+launch_velocity = Vector3(-20, 22, 20)
+
+[node name="JumpPadSW" parent="JumpPads" instance=ExtResource("5_jumppad")]
+transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, -50, 0, 50)
+launch_velocity = Vector3(20, 22, -20)
+
+[node name="JumpPadSE" parent="JumpPads" instance=ExtResource("5_jumppad")]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 50, 0, 50)
+launch_velocity = Vector3(-20, 22, -20)
+
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="Drone_NW" parent="Enemies" instance=ExtResource("3_drone")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 7, -22)
+
+[node name="Drone_NE" parent="Enemies" instance=ExtResource("3_drone")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 7, -22)
+
+[node name="Drone_SW" parent="Enemies" instance=ExtResource("3_drone")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 7, 22)
+
+[node name="Drone_SE" parent="Enemies" instance=ExtResource("3_drone")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 7, 22)
+
+[node name="Mech_North_Left" parent="Enemies" instance=ExtResource("4_mech")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, -36)
+
+[node name="Mech_North_Right" parent="Enemies" instance=ExtResource("4_mech")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, -36)
+
+[node name="Mech_South_Left" parent="Enemies" instance=ExtResource("4_mech")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, 36)
+
+[node name="Mech_South_Right" parent="Enemies" instance=ExtResource("4_mech")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, 36)
+
+[node name="WarpTerminal" parent="." instance=ExtResource("6_warp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 56)
+target_scene_path = "res://scenes/main.tscn"
+prompt_text = "Return to Obstacle Course Trial"
+
+[node name="WarpTerminalMega" parent="." instance=ExtResource("6_warp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 56)
+target_scene_path = "res://scenes/megalevel.tscn"
+prompt_text = "Warp to Sector-00 Mega-Complex"

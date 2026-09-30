@@ -1,0 +1,832 @@
+[gd_scene load_steps=38 format=3 uid="uid://c8megalevel1234"]
+
+[ext_resource type="Script" path="res://scripts/megalevel_manager.gd" id="1_mlm"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/drone_enemy.tscn" id="3_drone"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/mech_enemy.tscn" id="4_mech"]
+[ext_resource type="PackedScene" path="res://scenes/props/jump_pad.tscn" id="5_jumppad"]
+[ext_resource type="PackedScene" path="res://scenes/props/warp_terminal.tscn" id="6_warp"]
+[ext_resource type="PackedScene" path="res://scenes/props/terminal.tscn" id="7_terminal"]
+[ext_resource type="PackedScene" path="res://scenes/props/target_dummy.tscn" id="8_dummy"]
+[ext_resource type="Script" path="res://scripts/shoot_gate.gd" id="9_sg"]
+[ext_resource type="Script" path="res://scripts/gate_target.gd" id="10_gt"]
+
+[sub_resource type="Environment" id="Environment_mega"]
+background_mode = 1
+background_color = Color(0.015, 0.018, 0.025, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.12, 0.14, 0.18, 1)
+ambient_light_energy = 0.95
+fog_enabled = true
+fog_light_color = Color(0.025, 0.030, 0.040, 1)
+fog_density = 0.0035
+fog_aerial_perspective = 0.5
+fog_sky_affect = 0.65
+
+[sub_resource type="StandardMaterial3D" id="Mat_dark_floor"]
+albedo_color = Color(0.08, 0.09, 0.12, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_light_concrete"]
+albedo_color = Color(0.20, 0.22, 0.26, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="Mat_road_asphalt"]
+albedo_color = Color(0.11, 0.12, 0.15, 1)
+roughness = 0.7
+
+[sub_resource type="StandardMaterial3D" id="Mat_hazard_yellow"]
+albedo_color = Color(0.95, 0.65, 0.12, 1)
+metallic = 0.4
+roughness = 0.5
+
+[sub_resource type="StandardMaterial3D" id="Mat_crane_glow"]
+albedo_color = Color(1.0, 0.68, 0.12, 1)
+emission_enabled = true
+emission = Color(1.0, 0.68, 0.12, 1)
+emission_energy_multiplier = 2.8
+
+[sub_resource type="StandardMaterial3D" id="Mat_neon_cyan"]
+albedo_color = Color(1.0, 0.72, 0.16, 1)
+emission_enabled = true
+emission = Color(1.0, 0.72, 0.16, 1)
+emission_energy_multiplier = 2.4
+
+[sub_resource type="StandardMaterial3D" id="Mat_barrier_red"]
+albedo_color = Color(0.65, 0.20, 0.15, 1)
+emission_enabled = true
+emission = Color(0.65, 0.20, 0.15, 1)
+emission_energy_multiplier = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Mat_boost_orange"]
+albedo_color = Color(1.0, 0.60, 0.08, 1)
+emission_enabled = true
+emission = Color(1.0, 0.60, 0.08, 1)
+emission_energy_multiplier = 2.8
+
+[sub_resource type="StandardMaterial3D" id="Mat_bunker_metal"]
+albedo_color = Color(0.15, 0.17, 0.20, 1)
+metallic = 0.5
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="Mat_container_blue"]
+albedo_color = Color(0.14, 0.17, 0.21, 1)
+roughness = 0.75
+
+[sub_resource type="StandardMaterial3D" id="Mat_container_rust"]
+albedo_color = Color(0.24, 0.20, 0.18, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Mat_abyss"]
+albedo_color = Color(0.012, 0.014, 0.02, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="Mat_door"]
+albedo_color = Color(0.24, 0.14, 0.14, 1)
+metallic = 0.6
+roughness = 0.5
+
+[sub_resource type="StandardMaterial3D" id="Mat_target_orb"]
+albedo_color = Color(1.0, 0.72, 0.15, 1)
+emission_enabled = true
+emission = Color(1.0, 0.72, 0.15, 1)
+emission_energy_multiplier = 3.2
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_target"]
+radius = 0.9
+
+[sub_resource type="SphereMesh" id="SphereMesh_target"]
+radius = 0.85
+height = 1.7
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_door"]
+size = Vector3(16, 10, 1.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_door"]
+size = Vector3(16, 10, 1.5)
+
+[node name="MegaLevel" type="Node3D"]
+script = ExtResource("1_mlm")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_mega")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.819152, -0.40558, 0.40558, 0, 0.707107, 0.707107, -0.573576, -0.579228, 0.579228, 0, 80, 0)
+light_color = Color(0.92, 0.95, 1, 1)
+light_energy = 1.15
+shadow_enabled = true
+
+[node name="DirectionalLight3D_Fill" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, -0.707107, 0, 50, 0)
+light_color = Color(0.15, 0.25, 0.4, 1)
+light_energy = 0.45
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 25)
+
+[node name="Geometry" type="Node3D" parent="."]
+
+[node name="AbyssFloor" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -32, 0)
+use_collision = true
+size = Vector3(720, 2, 720)
+material = SubResource("Mat_abyss")
+
+[node name="Sector00_Citadel" type="Node3D" parent="Geometry"]
+
+[node name="PlazaFloor" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+use_collision = true
+size = Vector3(100, 2, 100)
+material = SubResource("Mat_dark_floor")
+
+[node name="PlazaTrimN" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, -49)
+use_collision = true
+size = Vector3(98, 0.4, 1.5)
+material = SubResource("Mat_neon_cyan")
+
+[node name="PlazaTrimS" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 49)
+use_collision = true
+size = Vector3(98, 0.4, 1.5)
+material = SubResource("Mat_neon_cyan")
+
+[node name="PlazaTrimW" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49, 1.2, 0)
+use_collision = true
+size = Vector3(1.5, 0.4, 98)
+material = SubResource("Mat_neon_cyan")
+
+[node name="PlazaTrimE" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49, 1.2, 0)
+use_collision = true
+size = Vector3(1.5, 0.4, 98)
+material = SubResource("Mat_neon_cyan")
+
+[node name="CitadelTowerBase" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 36, 0)
+use_collision = true
+size = Vector3(36, 72, 36)
+material = SubResource("Mat_light_concrete")
+
+[node name="CitadelInteriorHollow" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 38, 0)
+operation = 2
+use_collision = true
+size = Vector3(16, 76, 16)
+material = SubResource("Mat_bunker_metal")
+
+[node name="CitadelDoorN" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -18)
+operation = 2
+use_collision = true
+size = Vector3(8, 8, 8)
+
+[node name="CitadelDoorS" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 18)
+operation = 2
+use_collision = true
+size = Vector3(8, 8, 8)
+
+[node name="CitadelDoorW" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 4, 0)
+operation = 2
+use_collision = true
+size = Vector3(8, 8, 8)
+
+[node name="CitadelDoorE" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 4, 0)
+operation = 2
+use_collision = true
+size = Vector3(8, 8, 8)
+
+[node name="CitadelMidCatwalk" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 24, 0)
+use_collision = true
+size = Vector3(52, 1.5, 52)
+material = SubResource("Mat_bunker_metal")
+
+[node name="CitadelApexDeck" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 72, 0)
+use_collision = true
+size = Vector3(46, 2, 46)
+material = SubResource("Mat_dark_floor")
+
+[node name="ApexHole" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 72, 0)
+operation = 2
+use_collision = true
+size = Vector3(12, 6, 12)
+
+[node name="ApexBeaconNW" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 75, -22)
+use_collision = true
+size = Vector3(3, 8, 3)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="GlowNW" type="CSGSphere3D" parent="Geometry/Sector00_Citadel/ApexBeaconNW"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.5, 0)
+use_collision = true
+radius = 1.4
+material = SubResource("Mat_crane_glow")
+
+[node name="ApexBeaconNE" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 75, -22)
+use_collision = true
+size = Vector3(3, 8, 3)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="GlowNE" type="CSGSphere3D" parent="Geometry/Sector00_Citadel/ApexBeaconNE"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.5, 0)
+use_collision = true
+radius = 1.4
+material = SubResource("Mat_crane_glow")
+
+[node name="ApexBeaconSW" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 75, 22)
+use_collision = true
+size = Vector3(3, 8, 3)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="GlowSW" type="CSGSphere3D" parent="Geometry/Sector00_Citadel/ApexBeaconSW"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.5, 0)
+use_collision = true
+radius = 1.4
+material = SubResource("Mat_crane_glow")
+
+[node name="ApexBeaconSE" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 75, 22)
+use_collision = true
+size = Vector3(3, 8, 3)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="GlowSE" type="CSGSphere3D" parent="Geometry/Sector00_Citadel/ApexBeaconSE"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.5, 0)
+use_collision = true
+radius = 1.4
+material = SubResource("Mat_crane_glow")
+
+[node name="SkyBridgeN" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12, -75)
+use_collision = true
+size = Vector3(16, 2, 54)
+material = SubResource("Mat_road_asphalt")
+
+[node name="SkyBridgeS" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12, 75)
+use_collision = true
+size = Vector3(16, 2, 54)
+material = SubResource("Mat_road_asphalt")
+
+[node name="SkyBridgeW" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75, 12, 0)
+use_collision = true
+size = Vector3(54, 2, 16)
+material = SubResource("Mat_road_asphalt")
+
+[node name="SkyBridgeE" type="CSGBox3D" parent="Geometry/Sector00_Citadel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 14, 0)
+use_collision = true
+size = Vector3(54, 2, 16)
+material = SubResource("Mat_road_asphalt")
+
+[node name="Sector01_StratosphereCranes" type="Node3D" parent="Geometry"]
+
+[node name="NorthChasmVoid" type="CSGBox3D" parent="Geometry/Sector01_StratosphereCranes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -25, -200)
+use_collision = true
+size = Vector3(260, 4, 180)
+material = SubResource("Mat_abyss")
+
+[node name="Crane1" type="Node3D" parent="Geometry/Sector01_StratosphereCranes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 28, -130)
+
+[node name="Pillar" type="CSGBox3D" parent="Geometry/Sector01_StratosphereCranes/Crane1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -12, 0)
+use_collision = true
+size = Vector3(4, 26, 4)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="Jib" type="CSGBox3D" parent="Geometry/Sector01_StratosphereCranes/Crane1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 2, 0)
+use_collision = true
+size = Vector3(20, 3, 3)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="GrappleOrb" type="CSGSphere3D" parent="Geometry/Sector01_StratosphereCranes/Crane1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, -2, 0)
+use_collision = true
+radius = 1.8
+material = SubResource("Mat_crane_glow")
+
+[node name="Crane2" type="Node3D" parent="Geometry/Sector01_StratosphereCranes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 32, -165)
+
+[node name="Pillar" type="CSGBox3D" parent="Geometry/Sector01_StratosphereCranes/Crane2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -14, 0)
+use_collision = true
+size = Vector3(4, 30, 4)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="Jib" type="CSGBox3D" parent="Geometry/Sector01_StratosphereCranes/Crane2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 2, 0)
+use_collision = true
+size = Vector3(20, 3, 3)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="GrappleOrb" type="CSGSphere3D" parent="Geometry/Sector01_StratosphereCranes/Crane2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, -2, 0)
+use_collision = true
+radius = 1.8
+material = SubResource("Mat_crane_glow")
+
+[node name="Crane3" type="Node3D" parent="Geometry/Sector01_StratosphereCranes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 36, -200)
+
+[node name="Pillar" type="CSGBox3D" parent="Geometry/Sector01_StratosphereCranes/Crane3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -16, 0)
+use_collision = true
+size = Vector3(4, 34, 4)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="Jib" type="CSGBox3D" parent="Geometry/Sector01_StratosphereCranes/Crane3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 2, 0)
+use_collision = true
+size = Vector3(20, 3, 3)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="GrappleOrb" type="CSGSphere3D" parent="Geometry/Sector01_StratosphereCranes/Crane3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, -2, 0)
+use_collision = true
+radius = 1.8
+material = SubResource("Mat_crane_glow")
+
+[node name="Crane4" type="Node3D" parent="Geometry/Sector01_StratosphereCranes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 40, -235)
+
+[node name="Pillar" type="CSGBox3D" parent="Geometry/Sector01_StratosphereCranes/Crane4"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -18, 0)
+use_collision = true
+size = Vector3(4, 38, 4)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="Jib" type="CSGBox3D" parent="Geometry/Sector01_StratosphereCranes/Crane4"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 2, 0)
+use_collision = true
+size = Vector3(20, 3, 3)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="GrappleOrb" type="CSGSphere3D" parent="Geometry/Sector01_StratosphereCranes/Crane4"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, -2, 0)
+use_collision = true
+radius = 1.8
+material = SubResource("Mat_crane_glow")
+
+[node name="Crane5" type="Node3D" parent="Geometry/Sector01_StratosphereCranes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 44, -270)
+
+[node name="Pillar" type="CSGBox3D" parent="Geometry/Sector01_StratosphereCranes/Crane5"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -20, 0)
+use_collision = true
+size = Vector3(5, 42, 5)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="Jib" type="CSGBox3D" parent="Geometry/Sector01_StratosphereCranes/Crane5"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+use_collision = true
+size = Vector3(26, 3, 3)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="GrappleOrb" type="CSGSphere3D" parent="Geometry/Sector01_StratosphereCranes/Crane5"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -3, 0)
+use_collision = true
+radius = 2.0
+material = SubResource("Mat_crane_glow")
+
+[node name="SuspendedPlatformA" type="CSGBox3D" parent="Geometry/Sector01_StratosphereCranes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 14, -165)
+use_collision = true
+size = Vector3(14, 2, 14)
+material = SubResource("Mat_container_blue")
+
+[node name="SuspendedPlatformB" type="CSGBox3D" parent="Geometry/Sector01_StratosphereCranes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 18, -235)
+use_collision = true
+size = Vector3(14, 2, 14)
+material = SubResource("Mat_container_rust")
+
+[node name="NorthOverlookLanding" type="CSGBox3D" parent="Geometry/Sector01_StratosphereCranes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 24, -300)
+use_collision = true
+size = Vector3(52, 4, 34)
+material = SubResource("Mat_light_concrete")
+
+[node name="Sector02_SuperSlide" type="Node3D" parent="Geometry"]
+
+[node name="MountainBastion" type="CSGBox3D" parent="Geometry/Sector02_SuperSlide"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 60, -95)
+use_collision = true
+size = Vector3(36, 4, 36)
+material = SubResource("Mat_light_concrete")
+
+[node name="BastionPillar" type="CSGBox3D" parent="Geometry/Sector02_SuperSlide"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 28, -95)
+use_collision = true
+size = Vector3(28, 60, 28)
+material = SubResource("Mat_bunker_metal")
+
+[node name="SlideRamp1" type="CSGBox3D" parent="Geometry/Sector02_SuperSlide"]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0.353553, 0.918559, 0.176777, -0.353553, -0.176777, 0.918559, 138, 45, -45)
+use_collision = true
+size = Vector3(18, 1.2, 75)
+material = SubResource("Mat_road_asphalt")
+
+[node name="SlideRamp2" type="CSGBox3D" parent="Geometry/Sector02_SuperSlide"]
+transform = Transform3D(0.965926, 0, 0.258819, 0.0885213, 0.939693, -0.330366, -0.24321, 0.34202, 0.907673, 172, 28, 25)
+use_collision = true
+size = Vector3(18, 1.2, 75)
+material = SubResource("Mat_road_asphalt")
+
+[node name="Bulkhead1" type="CSGBox3D" parent="Geometry/Sector02_SuperSlide"]
+transform = Transform3D(0.965926, 0, 0.258819, 0, 1, 0, -0.258819, 0, 0.965926, 170, 31.5, 10)
+use_collision = true
+size = Vector3(20, 2.8, 1.5)
+material = SubResource("Mat_barrier_red")
+
+[node name="Bulkhead2" type="CSGBox3D" parent="Geometry/Sector02_SuperSlide"]
+transform = Transform3D(0.965926, 0, 0.258819, 0, 1, 0, -0.258819, 0, 0.965926, 174, 25.5, 30)
+use_collision = true
+size = Vector3(20, 2.8, 1.5)
+material = SubResource("Mat_barrier_red")
+
+[node name="Bulkhead3" type="CSGBox3D" parent="Geometry/Sector02_SuperSlide"]
+transform = Transform3D(0.965926, 0, 0.258819, 0, 1, 0, -0.258819, 0, 0.965926, 178, 19.5, 50)
+use_collision = true
+size = Vector3(20, 2.8, 1.5)
+material = SubResource("Mat_barrier_red")
+
+[node name="BankedCurvePlatform" type="CSGBox3D" parent="Geometry/Sector02_SuperSlide"]
+transform = Transform3D(0.939693, 0, -0.34202, 0, 1, 0, 0.34202, 0, 0.939693, 198, 12, 75)
+use_collision = true
+size = Vector3(32, 2, 32)
+material = SubResource("Mat_dark_floor")
+
+[node name="SkiJumpLip" type="CSGBox3D" parent="Geometry/Sector02_SuperSlide"]
+transform = Transform3D(0.906308, 0, 0.422618, -0.144544, 0.939693, 0.309976, -0.397131, -0.34202, 0.851651, 222, 10, 105)
+use_collision = true
+size = Vector3(18, 1.2, 38)
+material = SubResource("Mat_boost_orange")
+
+[node name="GrandLandingTerrace" type="CSGBox3D" parent="Geometry/Sector02_SuperSlide"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 210, 18, 190)
+use_collision = true
+size = Vector3(64, 3, 54)
+material = SubResource("Mat_light_concrete")
+
+[node name="Sector03_Foundry" type="Node3D" parent="Geometry"]
+
+[node name="FoundryBasinFloor" type="CSGBox3D" parent="Geometry/Sector03_Foundry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -6, 185)
+use_collision = true
+size = Vector3(180, 2, 160)
+material = SubResource("Mat_dark_floor")
+
+[node name="BasinWallN" type="CSGBox3D" parent="Geometry/Sector03_Foundry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 105)
+use_collision = true
+size = Vector3(182, 16, 2)
+material = SubResource("Mat_bunker_metal")
+
+[node name="BasinWallS" type="CSGBox3D" parent="Geometry/Sector03_Foundry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 265)
+use_collision = true
+size = Vector3(182, 20, 2)
+material = SubResource("Mat_bunker_metal")
+
+[node name="BasinWallW" type="CSGBox3D" parent="Geometry/Sector03_Foundry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -90, 4, 185)
+use_collision = true
+size = Vector3(2, 20, 162)
+material = SubResource("Mat_bunker_metal")
+
+[node name="BasinWallE" type="CSGBox3D" parent="Geometry/Sector03_Foundry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90, 4, 185)
+use_collision = true
+size = Vector3(2, 20, 162)
+material = SubResource("Mat_bunker_metal")
+
+[node name="WarehouseA" type="CSGBox3D" parent="Geometry/Sector03_Foundry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45, 3, 150)
+use_collision = true
+size = Vector3(32, 16, 24)
+material = SubResource("Mat_light_concrete")
+
+[node name="WarehouseB" type="CSGBox3D" parent="Geometry/Sector03_Foundry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 6, 200)
+use_collision = true
+size = Vector3(36, 22, 28)
+material = SubResource("Mat_light_concrete")
+
+[node name="ContainerStack1" type="CSGBox3D" parent="Geometry/Sector03_Foundry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, -2, 160)
+use_collision = true
+size = Vector3(6, 6, 14)
+material = SubResource("Mat_container_blue")
+
+[node name="ContainerStack2" type="CSGBox3D" parent="Geometry/Sector03_Foundry"]
+transform = Transform3D(0.965926, 0, 0.258819, 0, 1, 0, -0.258819, 0, 0.965926, 20, -1, 150)
+use_collision = true
+size = Vector3(6, 8, 14)
+material = SubResource("Mat_container_rust")
+
+[node name="ContainerStack3" type="CSGBox3D" parent="Geometry/Sector03_Foundry"]
+transform = Transform3D(0.866025, 0, -0.5, 0, 1, 0, 0.5, 0, 0.866025, 0, 0, 220)
+use_collision = true
+size = Vector3(6, 10, 14)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="FoundryCrane" type="CSGBox3D" parent="Geometry/Sector03_Foundry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 28, 185)
+use_collision = true
+size = Vector3(120, 3, 4)
+material = SubResource("Mat_hazard_yellow")
+
+[node name="FoundryOrbW" type="CSGSphere3D" parent="Geometry/Sector03_Foundry/FoundryCrane"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, -4, 0)
+use_collision = true
+radius = 2.0
+material = SubResource("Mat_crane_glow")
+
+[node name="FoundryOrbE" type="CSGSphere3D" parent="Geometry/Sector03_Foundry/FoundryCrane"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, -4, 0)
+use_collision = true
+radius = 2.0
+material = SubResource("Mat_crane_glow")
+
+[node name="Sector04_BhopSpeedway" type="Node3D" parent="Geometry"]
+
+[node name="SpeedwayRunway" type="CSGBox3D" parent="Geometry/Sector04_BhopSpeedway"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -170, 10, 0)
+use_collision = true
+size = Vector3(28, 2, 340)
+material = SubResource("Mat_road_asphalt")
+
+[node name="RunwayPillar1" type="CSGBox3D" parent="Geometry/Sector04_BhopSpeedway"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -170, -10, -120)
+use_collision = true
+size = Vector3(12, 38, 12)
+material = SubResource("Mat_light_concrete")
+
+[node name="RunwayPillar2" type="CSGBox3D" parent="Geometry/Sector04_BhopSpeedway"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -170, -10, 0)
+use_collision = true
+size = Vector3(12, 38, 12)
+material = SubResource("Mat_light_concrete")
+
+[node name="RunwayPillar3" type="CSGBox3D" parent="Geometry/Sector04_BhopSpeedway"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -170, -10, 120)
+use_collision = true
+size = Vector3(12, 38, 12)
+material = SubResource("Mat_light_concrete")
+
+[node name="SpeedArch1" type="CSGBox3D" parent="Geometry/Sector04_BhopSpeedway"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -170, 20, -90)
+use_collision = true
+size = Vector3(32, 2, 4)
+material = SubResource("Mat_neon_cyan")
+
+[node name="SpeedArch2" type="CSGBox3D" parent="Geometry/Sector04_BhopSpeedway"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -170, 20, -30)
+use_collision = true
+size = Vector3(32, 2, 4)
+material = SubResource("Mat_neon_cyan")
+
+[node name="SpeedArch3" type="CSGBox3D" parent="Geometry/Sector04_BhopSpeedway"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -170, 20, 30)
+use_collision = true
+size = Vector3(32, 2, 4)
+material = SubResource("Mat_neon_cyan")
+
+[node name="SpeedArch4" type="CSGBox3D" parent="Geometry/Sector04_BhopSpeedway"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -170, 20, 90)
+use_collision = true
+size = Vector3(32, 2, 4)
+material = SubResource("Mat_neon_cyan")
+
+[node name="Sector05_OrbitalCatapult" type="Node3D" parent="Geometry"]
+
+[node name="CatapultGantry" type="CSGBox3D" parent="Geometry/Sector05_OrbitalCatapult"]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 175, 18, 175)
+use_collision = true
+size = Vector3(32, 4, 32)
+material = SubResource("Mat_light_concrete")
+
+[node name="CatapultBase" type="CSGBox3D" parent="Geometry/Sector05_OrbitalCatapult"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 175, 0, 175)
+use_collision = true
+size = Vector3(26, 32, 26)
+material = SubResource("Mat_bunker_metal")
+
+[node name="TetherOrbAlpha" type="CSGSphere3D" parent="Geometry/Sector05_OrbitalCatapult"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 135, 54, 135)
+use_collision = true
+radius = 2.4
+material = SubResource("Mat_crane_glow")
+
+[node name="TetherOrbBeta" type="CSGSphere3D" parent="Geometry/Sector05_OrbitalCatapult"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95, 58, 95)
+use_collision = true
+radius = 2.4
+material = SubResource("Mat_crane_glow")
+
+[node name="Sector06_SkywayPerimeter" type="Node3D" parent="Geometry"]
+
+[node name="SkywayNorth" type="CSGBox3D" parent="Geometry/Sector06_SkywayPerimeter"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 26, -290)
+use_collision = true
+size = Vector3(440, 2, 14)
+material = SubResource("Mat_road_asphalt")
+
+[node name="SkywaySouth" type="CSGBox3D" parent="Geometry/Sector06_SkywayPerimeter"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 22, 275)
+use_collision = true
+size = Vector3(440, 2, 14)
+material = SubResource("Mat_road_asphalt")
+
+[node name="SkywayWest" type="CSGBox3D" parent="Geometry/Sector06_SkywayPerimeter"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -245, 22, 0)
+use_collision = true
+size = Vector3(14, 2, 540)
+material = SubResource("Mat_road_asphalt")
+
+[node name="SkywayEast" type="CSGBox3D" parent="Geometry/Sector06_SkywayPerimeter"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 255, 22, 0)
+use_collision = true
+size = Vector3(14, 2, 540)
+material = SubResource("Mat_road_asphalt")
+
+[node name="JumpPads" type="Node3D" parent="."]
+
+[node name="CitadelHyperLift" parent="JumpPads" instance=ExtResource("5_jumppad")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+launch_velocity = Vector3(0, 52, 0)
+
+[node name="NorthChasmCatapult" parent="JumpPads" instance=ExtResource("5_jumppad")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 26, -295)
+launch_velocity = Vector3(0, 24, 42)
+
+[node name="SlideRampBooster" parent="JumpPads" instance=ExtResource("5_jumppad")]
+transform = Transform3D(0.939693, 0, -0.34202, 0, 1, 0, 0.34202, 0, 0.939693, 195, 13, 72)
+launch_velocity = Vector3(24, 10, 28)
+
+[node name="FoundryEjectorN" parent="JumpPads" instance=ExtResource("5_jumppad")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -5, 120)
+launch_velocity = Vector3(0, 32, -24)
+
+[node name="FoundryEjectorS" parent="JumpPads" instance=ExtResource("5_jumppad")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -5, 250)
+launch_velocity = Vector3(0, 32, 24)
+
+[node name="BhopBooster1" parent="JumpPads" instance=ExtResource("5_jumppad")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -165, 11, -80)
+launch_velocity = Vector3(0, 10, 35)
+
+[node name="BhopBooster2" parent="JumpPads" instance=ExtResource("5_jumppad")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -175, 11, 80)
+launch_velocity = Vector3(0, 10, -35)
+
+[node name="OrbitalMegaCatapult" parent="JumpPads" instance=ExtResource("5_jumppad")]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 175, 20, 175)
+launch_velocity = Vector3(-32, 42, -32)
+
+[node name="SkywayCornerPadNW" parent="JumpPads" instance=ExtResource("5_jumppad")]
+transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, -240, 23, -280)
+launch_velocity = Vector3(32, 18, 32)
+
+[node name="SkywayCornerPadSW" parent="JumpPads" instance=ExtResource("5_jumppad")]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, -240, 23, 270)
+launch_velocity = Vector3(32, 18, -32)
+
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="Drone_NorthChasm_1" parent="Enemies" instance=ExtResource("3_drone")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 52, -155)
+
+[node name="Drone_NorthChasm_2" parent="Enemies" instance=ExtResource("3_drone")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 65, -235)
+
+[node name="Drone_Foundry_1" parent="Enemies" instance=ExtResource("3_drone")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 14, 175)
+
+[node name="Drone_Foundry_2" parent="Enemies" instance=ExtResource("3_drone")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 14, 195)
+
+[node name="Drone_CitadelAir" parent="Enemies" instance=ExtResource("3_drone")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 42, 0)
+
+[node name="Mech_Foundry_1" parent="Enemies" instance=ExtResource("4_mech")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, -5, 180)
+
+[node name="Mech_Foundry_2" parent="Enemies" instance=ExtResource("4_mech")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, -5, 180)
+
+[node name="Mech_Foundry_3" parent="Enemies" instance=ExtResource("4_mech")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -5, 230)
+
+[node name="Mech_SpeedwayNorth" parent="Enemies" instance=ExtResource("4_mech")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -170, 11, -135)
+
+[node name="Mech_SpeedwaySouth" parent="Enemies" instance=ExtResource("4_mech")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -170, 11, 135)
+
+[node name="Mech_CatapultGuard" parent="Enemies" instance=ExtResource("4_mech")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 155, 18, 155)
+
+[node name="Terminals" type="Node3D" parent="."]
+
+[node name="CitadelTerminal" parent="Terminals" instance=ExtResource("7_terminal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1, 20)
+terminal_title = "SECTOR 00 // CITADEL CORE ARCHIVES"
+log_content = "FACILITY CLASSIFICATION: SECTOR-00 PROVING GROUNDS\n--------------------------------------------------\nColossal kinetic testing biome spanning 600 meters.\n\nTRAVERSAL ADVISORY:\n- Jump into the central spire shaft to trigger the 52 m/s Hyper-Lift to the 75M apex deck.\n- Use RMB bio-vine tethering to chain infinite swings between overhead cranes in Sector 01.\n- Crouch-slide (Ctrl/C) down the 300m Velocity Canyon in Sector 02.\n- Chain bunnyhops (Space + air-strafe) along the Sector 04 Speedway for uncapped 50+ m/s speeds!\n\nSecurity hostiles are patrolling the complex. Press [R] to re-engage security waves."
+
+[node name="CraneTerminal" parent="Terminals" instance=ExtResource("7_terminal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 34, -280)
+terminal_title = "SECTOR 01 // STRATOSPHERE OVERLOOK"
+log_content = "TETHER SLINGSHOT TELEMETRY:\n--------------------------------------------------\nSuspended gantry cranes 01 through 05 provide continuous pendulum acceleration over the 200m abyss.\n\nTapping [Space] at the bottom of the pendulum arc transfers maximum kinetic momentum into forward catapult launch (+7.0 m/s impulse).\n\nStep onto the southern catapult pad to launch straight back to the Core Citadel."
+
+[node name="SlideTerminal" parent="Terminals" instance=ExtResource("7_terminal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95, 62, -90)
+terminal_title = "SECTOR 02 // HIGH BASTION OVERLOOK"
+log_content = "VELOCITY CHUTE PROTOCOL:\n--------------------------------------------------\nWarning: Incline exceeds 30 degrees.\n\nHold [Ctrl] or [C] as you drop onto the chute. Downward momentum converts directly into hyper-velocity sliding.\n\nKeep your head low to slide beneath the security bulkheads. The final ski-jump lip at the basin will catapult you over the eastern chasm!"
+
+[node name="SpeedwayTerminal" parent="Terminals" instance=ExtResource("7_terminal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -165, 11, -10)
+terminal_title = "SECTOR 04 // SPEEDWAY RUNWAY"
+log_content = "AIR-STRAFE ACCELERATION DYNAMICS:\n--------------------------------------------------\nFriction is zero during airtime.\n\nTo build uncapped speed:\n1. Jump with [Space].\n2. Hold [A] or [D] (never W in midair).\n3. Smoothly sweep the mouse in the direction you are strafing.\n4. Jump immediately upon touching down to maintain momentum!\n\nSpeeds exceeding 60 m/s are recorded in session peaks."
+
+[node name="WarpTerminals" type="Node3D" parent="."]
+
+[node name="WarpToArena" parent="WarpTerminals" instance=ExtResource("6_warp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 1, 20)
+target_scene_path = "res://scenes/battlefield.tscn"
+prompt_text = "Warp to Combat Arena (Battlefield)"
+
+[node name="WarpToCourse" parent="WarpTerminals" instance=ExtResource("6_warp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 1, 20)
+target_scene_path = "res://scenes/main.tscn"
+prompt_text = "Warp to Obstacle Course Trial"
+
+[node name="TargetsAndProps" type="Node3D" parent="."]
+
+[node name="Dummy_Speedway1" parent="TargetsAndProps" instance=ExtResource("8_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -162, 12, -50)
+
+[node name="Dummy_Speedway2" parent="TargetsAndProps" instance=ExtResource("8_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -178, 12, 50)
+
+[node name="Dummy_WarehouseRoof" parent="TargetsAndProps" instance=ExtResource("8_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45, 12, 150)
+
+[node name="Dummy_ApexDeck" parent="TargetsAndProps" instance=ExtResource("8_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 74, 0)
+
+[node name="ShortcutGate" type="Node3D" parent="TargetsAndProps" node_paths=PackedStringArray("door_node")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 195, 14, 115)
+script = ExtResource("9_sg")
+door_node = NodePath("DoorMesh")
+targets_needed = 2
+
+[node name="DoorMesh" type="AnimatableBody3D" parent="TargetsAndProps/ShortcutGate"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TargetsAndProps/ShortcutGate/DoorMesh"]
+shape = SubResource("BoxShape3D_door")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TargetsAndProps/ShortcutGate/DoorMesh"]
+mesh = SubResource("BoxMesh_door")
+surface_material_override/0 = SubResource("Mat_door")
+
+[node name="GateTarget1" type="StaticBody3D" parent="TargetsAndProps/ShortcutGate" node_paths=PackedStringArray("gate_parent")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 8, 0)
+script = ExtResource("10_gt")
+gate_parent = NodePath("..")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TargetsAndProps/ShortcutGate/GateTarget1"]
+shape = SubResource("SphereShape3D_target")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TargetsAndProps/ShortcutGate/GateTarget1"]
+mesh = SubResource("SphereMesh_target")
+surface_material_override/0 = SubResource("Mat_target_orb")
+
+[node name="GateTarget2" type="StaticBody3D" parent="TargetsAndProps/ShortcutGate" node_paths=PackedStringArray("gate_parent")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 8, 0)
+script = ExtResource("10_gt")
+gate_parent = NodePath("..")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TargetsAndProps/ShortcutGate/GateTarget2"]
+shape = SubResource("SphereShape3D_target")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TargetsAndProps/ShortcutGate/GateTarget2"]
+mesh = SubResource("SphereMesh_target")
+surface_material_override/0 = SubResource("Mat_target_orb")

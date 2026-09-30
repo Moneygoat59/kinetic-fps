@@ -17,3 +17,11 @@ Thumbs.db
 *~
 .idea/
 .vscode/
+
+# Tooling output
+shots/
+__pycache__/
+*.pyc
+
+# downloaded source assets (CC0 base meshes etc.); only generated models are committed
+tools/asset_src/

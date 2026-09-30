@@ -1,6 +1,8 @@
 [gd_scene load_steps=15 format=3 uid="uid://c8j71234player"]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="PackedScene" uid="uid://bqd2sgyuxx1hb" path="res://models/kenney_blasters/blaster-a.glb" id="2_blaster"]
+[ext_resource type="PackedScene" uid="uid://cfjbmqi7uilg5" path="res://models/kenney_blasters/grenade-a.glb" id="3_grenade"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.4
@@ -84,46 +86,30 @@ current = true
 fov = 85.0
 
 [node name="AimRay" type="RayCast3D" parent="Head/Camera3D"]
-target_position = Vector3(0, 0, -60)
-collision_mask = 3
+target_position = Vector3(0, 0, -160)
+collision_mask = 4294967295
 collide_with_areas = true
 
 [node name="GunMount" type="Node3D" parent="Head/Camera3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.28, -0.22, -0.45)
+transform = Transform3D(0.99863, 0, -0.052336, 0, 1, 0, 0.052336, 0, 0.99863, 0.18, -0.15, -0.30)
 
 [node name="Gun" type="Node3D" parent="Head/Camera3D/GunMount"]
 
-[node name="GunBody" type="MeshInstance3D" parent="Head/Camera3D/GunMount/Gun"]
-mesh = SubResource("BoxMesh_gun")
-surface_material_override/0 = SubResource("StandardMaterial3D_gun")
-
-[node name="GunBarrel" type="MeshInstance3D" parent="Head/Camera3D/GunMount/Gun"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -0.22)
-mesh = SubResource("BoxMesh_barrel")
-surface_material_override/0 = SubResource("StandardMaterial3D_barrel")
+[node name="BlasterModel" parent="Head/Camera3D/GunMount/Gun" instance=ExtResource("2_blaster")]
+transform = Transform3D(-0.38, 0, 0, 0, 0.38, 0, 0, 0, -0.38, 0, -0.04, -0.05)
 
 [node name="MuzzleFlash" type="OmniLight3D" parent="Head/Camera3D/GunMount/Gun"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -0.38)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.015, -0.42)
 visible = false
-light_color = Color(0.2, 1, 0.7, 1)
+light_color = Color(0.7, 0.35, 1.0, 1)
 light_energy = 3.5
 omni_range = 4.0
 
 [node name="GrenadeHold" type="Node3D" parent="Head/Camera3D/GunMount"]
 visible = false
 
-[node name="Body" type="MeshInstance3D" parent="Head/Camera3D/GunMount/GrenadeHold"]
-mesh = SubResource("CylinderMesh_held_grenade")
-surface_material_override/0 = SubResource("StandardMaterial3D_held_grenade")
-
-[node name="Stripe" type="MeshInstance3D" parent="Head/Camera3D/GunMount/GrenadeHold"]
-mesh = SubResource("CylinderMesh_held_stripe")
-surface_material_override/0 = SubResource("StandardMaterial3D_held_stripe")
-
-[node name="Cap" type="MeshInstance3D" parent="Head/Camera3D/GunMount/GrenadeHold"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, 0)
-mesh = SubResource("CylinderMesh_held_cap")
-surface_material_override/0 = SubResource("StandardMaterial3D_held_cap")
+[node name="GrenadeModel" parent="Head/Camera3D/GunMount/GrenadeHold" instance=ExtResource("3_grenade")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
 
 [node name="PinRing" type="MeshInstance3D" parent="Head/Camera3D/GunMount/GrenadeHold"]
 transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -0.05, 0.09, 0)
@@ -138,25 +124,34 @@ light_energy = 3.0
 omni_range = 2.0
 
 [node name="HUD" type="CanvasLayer" parent="."]
+layer = 2
 
 [node name="SpeedLabel" type="Label" parent="HUD"]
 mouse_filter = 2
-offset_left = 32.0
-offset_top = 32.0
-offset_right = 260.0
-offset_bottom = 68.0
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -34.0
+offset_right = 240.0
+offset_bottom = -20.0
+grow_vertical = 0
 theme_override_colors/font_color = Color(0.1, 1, 0.6, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 10
 text = "VEL: 0.0 m/s"
 
 [node name="WeaponLabel" type="Label" parent="HUD"]
 mouse_filter = 2
-offset_left = 32.0
-offset_top = 62.0
-offset_right = 380.0
-offset_bottom = 94.0
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -20.0
+offset_right = 240.0
+offset_bottom = -6.0
+grow_vertical = 0
 theme_override_colors/font_color = Color(0.2, 0.9, 1, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 10
 text = "[1] BLASTER"
 
 [node name="InteractPrompt" type="Label" parent="HUD"]
@@ -167,14 +162,14 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -150.0
-offset_top = 40.0
-offset_right = 150.0
-offset_bottom = 66.0
+offset_left = -100.0
+offset_top = 14.0
+offset_right = 100.0
+offset_bottom = 28.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.9, 0.3, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 10
 text = "[E] Interact"
 horizontal_alignment = 1
 
@@ -186,10 +181,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -4.0
-offset_top = -4.0
-offset_right = 4.0
-offset_bottom = 4.0
+offset_left = -2.0
+offset_top = -2.0
+offset_right = 2.0
+offset_bottom = 2.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -201,41 +196,61 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -2.0
-offset_top = -2.0
-offset_right = 2.0
-offset_bottom = 2.0
+offset_left = -1.5
+offset_top = -1.5
+offset_right = 1.5
+offset_bottom = 1.5
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.1, 1, 0.6, 0.85)
+color = Color(0.1, 1, 0.6, 0.9)
 
-[node name="ControlsGuide" type="Label" parent="HUD"]
+[node name="HelpHint" type="Label" parent="HUD"]
 mouse_filter = 2
 anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -380.0
-offset_top = -250.0
-offset_right = -24.0
-offset_bottom = -24.0
+offset_left = -80.0
+offset_top = -18.0
+offset_right = -10.0
+offset_bottom = -6.0
 grow_horizontal = 0
 grow_vertical = 0
-theme_override_colors/font_color = Color(0.7, 0.85, 0.8, 0.75)
-theme_override_font_sizes/font_size = 13
-text = "RMB (Hold) - Shitty Vine Swing
-Release RMB / Space - Slingshot Catapult!
-WASD - Move / Pump Vine Swing
-SPACE - Jump / Bhop
+theme_override_colors/font_color = Color(0.5, 0.65, 0.7, 0.55)
+theme_override_font_sizes/font_size = 8
+text = "[H] Controls"
+horizontal_alignment = 2
+
+[node name="ControlsGuide" type="Label" parent="HUD"]
+visible = false
+mouse_filter = 2
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -220.0
+offset_top = -195.0
+offset_right = -10.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.75, 0.9, 0.85, 0.9)
+theme_override_font_sizes/font_size = 9
+text = "RMB (Hold) - Vine Grapple Swing
+SPACE (Hold) - Winch In Slowly
+SHIFT - Catapult Launch
+Release RMB - Smooth Detach
+WASD - Move / Air Pump
+SPACE - Jump / Bhop Strafe
 CTRL / C - Momentum Slide
 SHIFT / Q - Kinetic Dash
-G / 2 - Equip Grenade (LMB: Pin -> Throw)
-1 - Equip Blaster
-LMB - Fire / Use Weapon
-R - Checkpoint Reset (Shift+R Start)
-E - Read Terminals
-F11 - Toggle Fullscreen
-ESC - Release Cursor"
+G / 2 - Grenade (LMB: Pin -> Throw)
+1 - Blaster
+R - Respawn Wave / Checkpoint
+Shift+R - Return to Hub
+E - Interact with Terminals
+F11 - Fullscreen | F10 - Res Scale | H - Help"
 horizontal_alignment = 2
 
